@@ -1,0 +1,149 @@
+---
+title: "BAHD and SCPL synteny network"
+author: "Thomas Naake"
+format: 
+    html:
+        self-contained: true
+        code-fold: true
+        toc: true
+        toc-depth: 3
+        toc-expand: true
+editor: visual
+---
+
+# Prepare the environment
+
+```{r load_libraries}
+#| message: FALSE
+#| warning: FALSE
+library("igraph")
+```
+
+# Load the files
+
+```{r load_files}
+load("BAHD_SCPL_bin_mat_complete_mat_type.RData") 
+## contains bin_mat_complete (13535x13535) and mat_type (13535x13535), contains also singletons
+
+load("bin_mat_complete_cut_tandemgenes.RData")
+## contains bin_mat_complete_cut (9963x9963) mat_type_cut (9963x9963)
+```
+
+## Reconstruct the network for module detection
+
+Continue with the `bin_mat_complete_cut` network and obtain the network 
+components. Most of the components only contain 1 or 2 genomic sites. 
+
+Only continue with the 5 largest components that contain syntenic information on 
+9507 genomic sites.
+```{r}
+## create a network from the binary matrix (cut)
+net <- graph_from_adjacency_matrix(bin_mat_complete_cut, mode="undirected", 
+    diag = FALSE, weighted = TRUE)
+
+## only continue with nodes from the big components 1 to 5
+names_net <- names(membership(components(net))[which(membership(components(net)) %in% 1:5)])
+bin_mat_cut <- bin_mat_complete_cut[names_net, names_net]
+dim(bin_mat_cut)
+net_cut <- graph_from_adjacency_matrix(bin_mat_cut, mode = "undirected", 
+    diag = FALSE, weighted = TRUE)
+```
+
+Load membership information from community detection and store in 
+`membership_community`.
+
+```{r}
+membership_community <- read.csv("members.csv")
+```
+
+Add to the `membership_community` object information on the orthogroup 
+membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
+
+```{r}
+## add empty columns
+membership_community$og <- "unknown"
+membership_community$family <- "unknown"
+
+## read the files that contain information on the orthogroup
+bahd <- readxl::read_excel("BAHD & SCPL OGs.xlsx", sheet = "BAHD-ATs") |>
+    as.data.frame()
+og_bahd <- c("OG0000346", "OG0000212", "OG0002767", "OG0000119", "OG0001133", 
+    "OG0001868", "OG0000161", "OG0000365", "OG0001959", "OG0002199",
+    "OG0008747", "OG0002993", "OG0005584", "OG0008842", "OG0005223", 
+    "OG0008898")
+scpl <- readxl::read_excel("BAHD & SCPL OGs.xlsx", sheet = "SCP&SCPL-ATs") |>
+    as.data.frame()
+og_scpl <- c("OG0000185", "OG0000121", "OG0001568", "OG0001444", "OG0003193", 
+      "OG0003286", "OG0000663", "OG0007821")
+
+## iterate through the orthogroups and add the information to membership community
+## for BAHDs
+for (og_bahd_i in og_bahd) {
+    ## get first all BAHD genes per OG
+    bahd_genes <- bahd[grep(bahd[1:50, 1], pattern = og_bahd_i), 4:ncol(bahd)] |>
+        unlist() |>
+        strsplit(split = ", ") |>
+        unlist() |>
+        as.character()
+    bahd_genes <- bahd_genes[!is.na(bahd_genes)]
+    bahd_genes <- paste("\\b", bahd_genes, "\\b", sep = "") ## only allow exact matches
+    bahd_genes_collapsed <- paste(bahd_genes, collapse = "|")
+    row_inds <- grep(membership_community$X, pattern = bahd_genes_collapsed)
+    membership_community[row_inds, "og"] <- paste(membership_community[row_inds, "og"], og_bahd_i, sep = "/")
+    membership_community[row_inds, "family"] <- paste(membership_community[row_inds, "family"], "BAHD", sep = "/")
+}
+## for SCPLs
+for (og_scpl_i in og_scpl) {
+    ## get first all SCPL genes per OG
+    scpl_genes <- scpl[grep(scpl[1:24, 1], pattern = og_scpl_i), 4:ncol(scpl)] |>
+        unlist() |>
+        strsplit(split = ", ") |>
+        unlist() |>
+        as.character()
+    scpl_genes <- scpl_genes[!is.na(scpl_genes)]
+    scpl_genes <- paste("\\b", scpl_genes, "\\b", sep = "") ## only allow exact matches
+    scpl_genes_collapsed <- paste(scpl_genes, collapse = "|")
+    row_inds <- grep(membership_community$X, pattern = scpl_genes_collapsed)
+    membership_community[row_inds, "og"] <- paste(membership_community[row_inds, "og"], og_scpl_i, sep = "/")
+    membership_community[row_inds, "family"] <- paste(membership_community[row_inds, "family"], "SCPL", sep = "/")
+}
+
+## remove the / in the beginning
+membership_community$og <- stringr::str_remove(
+    membership_community$og, pattern = "^unknown/")
+membership_community$family <- stringr::str_remove(
+    membership_community$family, pattern = "^unknown/")
+
+## simplify the family column
+membership_community$family <- strsplit(membership_community$family, split = "/") |> 
+    lapply(function(entry_i) unique(entry_i)) |>
+    unlist()
+```
+
+Iterate now through the orthogroups and obtain the networks to calculate 
+network topology parameters.
+
+```{r}
+og_bahd
+
+genes <- membership_community[membership_community$og == "OG0000346", "X"]
+
+    g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], mode = "undirected", 
+        diag = FALSE, weighted = TRUE)
+```
+
+
+all(names(V(net_cut)) == membership_community$X)
+V(net_cut)$color <- as.factor(membership_community$family)
+V(net_cut)$color <- as.factor(membership_community$og)
+
+plot(net_cut, vertex.label = NA, vertex.size = 3, edge.width = E(net_cut),
+     shape = "rectangle")
+
+sapply(decompose(net_cut), plot, vertex.label = NA, vertex.size = 3, 
+    edge.width = 1, edge.arrow.size = 0.1, shape = "rectangle")
+net_cut |>
+    add_layout_(layout_nicely(), component_wise()) |>
+    plot(net_cut, vertex.label = NA, vertex.size = 3, edge.width = 1, 
+     edge.arrow.size = 0.1, shape = "rectangle")
+```
