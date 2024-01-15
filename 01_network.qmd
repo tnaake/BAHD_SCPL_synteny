@@ -56,67 +56,88 @@ Load membership information from community detection and store in
 membership_community <- read.csv("members.csv")
 ```
 
-Add to the `membership_community` object information on the orthogroup 
+Add to the `membership_community` object information on the orthogroup and MCL 
 membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
 
 ```{r}
 ## add empty columns
 membership_community$og <- "unknown"
+membership_community$mcl <- "unknown"
 membership_community$family <- "unknown"
 
 ## read the files that contain information on the orthogroup
-bahd <- readxl::read_excel("BAHD & SCPL OGs.xlsx", sheet = "BAHD-ATs") |>
-    as.data.frame()
+# bahd <- readxl::read_excel("BAHD & SCPL OGs.xlsx", sheet = "BAHD-ATs") |>
+#     as.data.frame()
+og <- readr::read_delim("Results_Nov05_Thomas/family_orthogroups_iadhore.txt", 
+    col_names = FALSE)
+mcl <- readr::read_delim("Results_Nov05_Thomas/family_orthogroups_mcl15.txt", 
+    col_names = FALSE)
 og_bahd <- c("OG0000346", "OG0000212", "OG0002767", "OG0000119", "OG0001133", 
     "OG0001868", "OG0000161", "OG0000365", "OG0001959", "OG0002199",
     "OG0008747", "OG0002993", "OG0005584", "OG0008842", "OG0005223", 
     "OG0008898")
-scpl <- readxl::read_excel("BAHD & SCPL OGs.xlsx", sheet = "SCP&SCPL-ATs") |>
-    as.data.frame()
+mcl_bahd <- c("group_414", "group_298", "group_1084", "group_179", "group_56")
+
+# scpl <- readxl::read_excel("BAHD & SCPL OGs.xlsx", sheet = "SCP&SCPL-ATs") |>
+#     as.data.frame()
 og_scpl <- c("OG0000185", "OG0000121", "OG0001568", "OG0001444", "OG0003193", 
       "OG0003286", "OG0000663", "OG0007821")
+mcl_scpl <- c("group_50")
 
 ## iterate through the orthogroups and add the information to membership community
 ## for BAHDs
-for (og_bahd_i in og_bahd) {
-    ## get first all BAHD genes per OG
-    bahd_genes <- bahd[grep(bahd[1:50, 1], pattern = og_bahd_i), 4:ncol(bahd)] |>
+for (row_i in seq_len(nrow(membership_community))) {
+    
+    genes_i <- membership_community[row_i, "X"] |>
+        strsplit(split = "/") |>
+        unlist()
+    
+    ## get indices in og and mcl for the genes_i
+    inds_og_i <- match(genes_i, og$X1)
+    og_i <- og[inds_og_i, "X2"] |>
         unlist() |>
-        strsplit(split = ", ") |>
+        paste(collapse = "/")
+    inds_mcl_i <- match(genes_i, mcl$X1)
+    mcl_i <- mcl[inds_mcl_i, "X2"] |>
         unlist() |>
-        as.character()
-    bahd_genes <- bahd_genes[!is.na(bahd_genes)]
-    bahd_genes <- paste("\\b", bahd_genes, "\\b", sep = "") ## only allow exact matches
-    bahd_genes_collapsed <- paste(bahd_genes, collapse = "|")
-    row_inds <- grep(membership_community$X, pattern = bahd_genes_collapsed)
-    membership_community[row_inds, "og"] <- paste(membership_community[row_inds, "og"], og_bahd_i, sep = "/")
-    membership_community[row_inds, "family"] <- paste(membership_community[row_inds, "family"], "BAHD", sep = "/")
+        paste(collapse = "/")
+    
+    ## write the OG and MCL information to membership_community
+    membership_community[row_i, "og"] <- paste(
+        membership_community[row_i, "og"], og_i, sep = "/")
+    membership_community[row_i, "mcl"] <- paste(
+        membership_community[row_i, "mcl"], mcl_i, sep = "/")
+    
+    ## write the family information to membership_community
+    .family <- mcl[inds_mcl_i, "X2"] |>
+        unlist() 
+    .family[.family %in% mcl_bahd] <- "BAHD"
+    .family[.family %in% mcl_scpl] <- "SCPL"
+    .family <- paste(.family, collapse = "/")
+    membership_community$family[row_i] <- paste(
+        membership_community$family[row_i], .family, sep = "/")
 }
-## for SCPLs
-for (og_scpl_i in og_scpl) {
-    ## get first all SCPL genes per OG
-    scpl_genes <- scpl[grep(scpl[1:24, 1], pattern = og_scpl_i), 4:ncol(scpl)] |>
-        unlist() |>
-        strsplit(split = ", ") |>
-        unlist() |>
-        as.character()
-    scpl_genes <- scpl_genes[!is.na(scpl_genes)]
-    scpl_genes <- paste("\\b", scpl_genes, "\\b", sep = "") ## only allow exact matches
-    scpl_genes_collapsed <- paste(scpl_genes, collapse = "|")
-    row_inds <- grep(membership_community$X, pattern = scpl_genes_collapsed)
-    membership_community[row_inds, "og"] <- paste(membership_community[row_inds, "og"], og_scpl_i, sep = "/")
-    membership_community[row_inds, "family"] <- paste(membership_community[row_inds, "family"], "SCPL", sep = "/")
-}
+
+## replace the NAs (non-matched) groups
+membership_community$og <- gsub(pattern = "NA", replacement = "unknown", 
+    x = membership_community$og)
+membership_community$mcl <- gsub(pattern = "NA", replacement = "unknown", 
+    x = membership_community$mcl)
+membership_community$family <- gsub(pattern = "NA", replacement = "unknown", 
+    x = membership_community$family)
 
 ## remove the / in the beginning
 membership_community$og <- stringr::str_remove(
     membership_community$og, pattern = "^unknown/")
+membership_community$mcl <- stringr::str_remove(
+    membership_community$mcl, pattern = "^unknown/")
 membership_community$family <- stringr::str_remove(
     membership_community$family, pattern = "^unknown/")
 
 ## simplify the family column
 membership_community$family <- strsplit(membership_community$family, split = "/") |> 
     lapply(function(entry_i) unique(entry_i)) |>
+    lapply(function(entry_i) paste(entry_i, collapse = "/")) |>
     unlist()
 ```
 
@@ -124,26 +145,461 @@ Iterate now through the orthogroups and obtain the networks to calculate
 network topology parameters.
 
 ```{r}
-og_bahd
+## calculate topological parameters
+calculate_topological_parameters <- function(.component) {
+        
+    ## average local efficiency
+    .average_local_efficiency <- average_local_efficiency(.component, 
+        weights = E(.component), directed = FALSE, mode = "all")
+    
+    ## average path length
+    .average_path_length <- average.path.length(.component, 
+        weights = E(.component), directed = FALSE)
+    
+    ## betweenness
+    .betweenness_normalized <- betweenness(.component, directed = FALSE, 
+        weights = E(.component), normalized = TRUE)
+    .betweenness_normalized_min <- .betweenness_normalized |>
+        min()
+    .betweenness_normalized_median <- .betweenness_normalized |>
+        median()
+    .betweenness_normalized_max <- .betweenness_normalized |>
+        max()
+    .betweenness_notnormalized <- betweenness(.component, directed = FALSE, 
+        weights = E(.component), normalized = FALSE)
+    .betweenness_notnormalized_min <- .betweenness_notnormalized |>
+        min()
+    .betweenness_notnormalized_median <- .betweenness_notnormalized |>
+        median()
+    .betweenness_notnormalized_max <- .betweenness_notnormalized |>
+        max()
+    
+    ## closeness
+    .closeness_normalized <- closeness(.component, mode = "all", 
+        weights = E(.component), normalized = TRUE)
+    .closeness_normalized_min <- .closeness_normalized |>
+        min()
+    .closeness_normalized_median <- .closeness_normalized |>
+        median()
+    .closeness_normalized_max <- .closeness_normalized |>
+        max()
+    .closeness_notnormalized <- closeness(.component, mode = "all", 
+        weights = E(.component), normalized = FALSE)
+    .closeness_notnormalized_min <- .closeness_notnormalized |>
+        min()
+    .closeness_notnormalized_median <- .closeness_notnormalized |>
+        median()
+    .closeness_notnormalized_max <- .closeness_notnormalized |>
+        max()
 
-genes <- membership_community[membership_community$og == "OG0000346", "X"]
+    ## constraint
+    .constraint <- constraint(.component, weights = E(.component))
+    .constraint_min <- .constraint |>
+        min()
+    .constraint_median <- .constraint |>
+        median()
+    .constraint_max <- .constraint |>
+        max()
+    
+    ## diameter
+    .diameter <- diameter(.component, directed = FALSE, weights = E(.component))
+    
+    ## degree
+    .degree_normalized <- degree(.component, normalized = TRUE) 
+    .degree_normalized_min <- .degree_normalized |> 
+        min()
+    .degree_normalized_median <- .degree_normalized |> 
+        median()
+    .degree_normalized_max <- .degree_normalized |> 
+        max()
+        
+    .degree_notnormalized <- degree(.component, normalized = FALSE) 
+    .degree_notnormalized_min <- .degree_notnormalized |> 
+        min()
+    .degree_notnormalized_median <- .degree_notnormalized |> 
+        median()
+    .degree_notnormalized_max <- .degree_notnormalized |> 
+        max()
+        
+    ## eccentricity
+    .eccentricity <- eccentricity(.component, mode = "all")
+    .eccentricity_min <- .eccentricity |>
+        min()
+    .eccentricity_median <- .eccentricity |>
+        median()
+    .eccentricity_max <- .eccentricity |>
+        max()
+    
+    ## edge betweenness
+    .edge_betweenness <- edge_betweenness(.component, 
+        directed = FALSE, weights = E(.component))
+    .edge_betweenness_min <- .edge_betweenness |>
+        min()
+    .edge_betweenness_median <- .edge_betweenness |>
+        median()
+    .edge_betweenness_max <- .edge_betweenness |>
+        max()
 
-    g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], mode = "undirected", 
-        diag = FALSE, weighted = TRUE)
+    ## eigencentrality
+    .eigen_centrality <- eigen_centrality(.component, 
+        weights = E(.component), scale = FALSE)
+    .eigen_centrality_min <- .eigen_centrality$vector |> 
+        min()
+    .eigen_centrality_median <- .eigen_centrality$vector |> 
+        median()
+    .eigen_centrality_max <- .eigen_centrality$vector |> 
+        max()
+    .eigen_centrality_value <- .eigen_centrality$value
+     
+    ## global efficiency
+    .global_efficiency <- global_efficiency(.component, 
+        weights = E(.component), directed = TRUE)
+    
+    ## harmonic centrality
+    .harmonic_centrality <- harmonic_centrality(.component, mode = "all", 
+        weights = E(.component)) 
+    .harmonic_centrality_min <- .harmonic_centrality |>
+        min()
+    .harmonic_centrality_median <- .harmonic_centrality |>
+        median()
+    .harmonic_centrality_max <- .harmonic_centrality |>
+        max()
+    
+    ## neighborhood size
+    .neighborhood_size <- neighborhood_size(.component, order = 1, mode = "all")
+    .neighborhood_size_min <- .neighborhood_size |>
+        min()
+    .neighborhood_size_median <- .neighborhood_size |>
+        median()
+    .neighborhood_size_max <- .neighborhood_size |>
+        max()
+    
+    ## number of nodes
+    .number_nodes <- length(.component)
+    
+    ## radius
+    .radius <- radius(.component, mode = "all")
+    
+    ## strength
+    .strength <- strength(.component, mode = "all", loops = FALSE, 
+        weights = E(.component))
+    .strength_min <- .strength |>
+        min()
+    .strength_median <- .strength |>
+        median()
+    .strength_max <- .strength |>
+        max()
+        
+    ## shortest path
+    .shortest_paths <- shortest.paths(.component, mode = "all", 
+        weights = E(.component))
+    .shortest_paths_min <- .shortest_paths |>
+        min()
+    .shortest_paths_median <- .shortest_paths |>
+        median()
+    .shortest_paths_max <- .shortest_paths |>
+        max()
+        
+    ## create data.frame to store resutls and to return
+    data.frame(
+        ## average local efficiency
+        average_local_efficiency = .average_local_efficiency,
+    
+        ## average path length
+        average_path_length = .average_path_length,
+        
+        ## betweenness
+        betweenness_normalized_min = .betweenness_normalized_min,
+        betweenness_normalized_median = .betweenness_normalized_median,
+        betweenness_normalized_max = .betweenness_normalized_max,
+        betweenness_notnormalized_min = .betweenness_notnormalized_min,
+        betweenness_notnormalized_median = .betweenness_notnormalized_median,
+        betweenness_notnormalized_max = .betweenness_notnormalized_max,
+        
+        ## closeness
+        closeness_normalized_min = .closeness_normalized_min,
+        closeness_normalized_median = .closeness_normalized_median,
+        closeness_normalized_max = .closeness_normalized_max,
+        closeness_notnormalized_min = .closeness_notnormalized_min,
+        closeness_notnormalized_median = .closeness_notnormalized_median,
+        closeness_notnormalized_max = .closeness_notnormalized_max,
+    
+        ## constraint
+        constraint_min = .constraint_min,
+        constraint_median = .constraint_median,
+        constraint_max = .constraint_max,
+        
+        ## diameter
+        diameter = .diameter,
+            
+        ## degree
+        degree_normalized_min = .degree_normalized_min,
+        degree_normalized_median = .degree_normalized_median,
+        degree_normalized_max = .degree_normalized_max,
+        degree_notnormalized_min = .degree_notnormalized_min,
+        degree_notnormalized_median = .degree_notnormalized_median,
+        degree_notnormalized_max = .degree_notnormalized_max,
+            
+        ## eccentricity
+        eccentricity_min = .eccentricity_min,
+        eccentricity_median = .eccentricity_median,
+        eccentricity_max = .eccentricity_max,
+        
+        ## edge betweenness
+        edge_betweenness_min = .edge_betweenness_min,
+        edge_betweenness_median = .edge_betweenness_median,
+        edge_betweenness_max = .edge_betweenness_max,
+    
+        ## eigencentrality
+        eigen_centrality_min = .eigen_centrality_min,
+        eigen_centrality_median = .eigen_centrality_median,
+        eigen_centrality_max = .eigen_centrality_max,
+        eigen_centrality_value = .eigen_centrality_value,
+        
+        ## global efficiency
+        global_efficiency = .global_efficiency,
+        
+        ## harmonic centrality 
+        harmonic_centrality_min = .harmonic_centrality_min,
+        harmonic_centrality_median = .harmonic_centrality_median,
+        harmonic_centrality_max = .harmonic_centrality_max,
+        
+        ## neighborhood size
+        neighborhood_size_min = .neighborhood_size_min,
+        neighborhood_size_median = .neighborhood_size_median,
+        neighborhood_size_max = .neighborhood_size_max,
+        
+        ## number of nodes
+        number_nodes = .number_nodes, 
+        
+        ## radius
+        radius = .radius,
+        
+        ## strength
+        strength_min = .strength_min,
+        strength_median = .strength_median,
+        strength_max = .strength_max,
+            
+        ## shortest path
+        shortest_paths_min = .shortest_paths_min,
+        shortest_paths_median = .shortest_paths_median,
+        shortest_paths_max = .shortest_paths_max
+    )
+}
+
+## wrapper function that iterates through orthogroups and calculates 
+## topology parameters of components
+#' @param og character containing names of orthogroups
+get_topology_for_components <- function(og = og_bahd) {
+    
+    ## create list to store information on orthogroup components
+    component_size <- list()
+    for (i in seq_len(length(og))) {
+        genes <- membership_community[membership_community$og == og[i], "X"]
+        g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], 
+            mode = "undirected", diag = FALSE, weighted = TRUE)
+        .components <- decompose(g, min.vertices = 3)
+    
+        ## calculate topological parameters, add information on the component, and
+        ## combine into one data.frame
+        topological_parameters_i <- lapply(seq_along(.components), function(j) {
+            df <- calculate_topological_parameters(.component = .components[[j]])
+            cbind(df, component = paste(og[i], j, sep = "_"))
+        })
+        topological_parameters_i <- do.call("rbind", topological_parameters_i) 
+        component_size[[og[i]]] <- components(g)$csize
+   
+        if (i == 1) {
+            topological_parameters <- topological_parameters_i
+        } else {
+            topological_parameters <- rbind(topological_parameters, topological_parameters_i)    
+        }
+    }
+    
+    list(topological_parameters = topological_parameters, component_size = component_size)
+}
+
+## apply the function on orthogroups of BAHD and SCPL genes
+topology_bahd <- get_topology_for_components(og = og_bahd)
+topology_scpl <- get_topology_for_components(og = og_scpl)
+
+## add information on BAHD and SCPL genes
+topology_bahd[[1]]$family <- "BAHD"
+topology_scpl[[1]]$family <- "SCPL"
 ```
 
+Do the actual plotting.
 
-all(names(V(net_cut)) == membership_community$X)
-V(net_cut)$color <- as.factor(membership_community$family)
-V(net_cut)$color <- as.factor(membership_community$og)
+```{r}
+plot_topology_parameter <- function(.topology_bahd = topology_bahd, 
+    .topology_scpl = topology_scpl, plot = "degree", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = TRUE, method = "lm", .digits_x = 0, .digits_y = 2) {
+    
+    ## row bind topology_bahd and topology_scpl
+    topology <- rbind(.topology_bahd[[1]], .topology_scpl[[1]])
+    
+    ## select the columns
+    topology_l <- topology |> 
+        select(any_of(plot), number_nodes, family)
+    
+    ## transform (log) 
+    if (log10_x)
+        topology_l[["number_nodes"]] <- log10(topology_l[["number_nodes"]] + offset_x)
+    if (log10_y)
+        topology_l[[plot]] <- log10(topology_l[[plot]] + offset_y)
+    
+    ## information on the model
+    if (.model) {
+        model <- lm(topology_l[[plot]] ~ number_nodes * family, data = topology_l)
+        print(anova(model))    
+    }
+    
+    ## do the actual plotting
+    gg <- topology_l |>
+        ggplot(aes(x = number_nodes, y = .data[[plot]], color = family)) +
+            geom_point()
+    if (.model)
+        gg <- gg +
+            geom_smooth(method = method, se = FALSE, alpha = 0.02)
+    
+    if (log10_x)
+        gg <- gg + scale_x_continuous(labels = function(x) format_format() (round(10^x - offset_x, digits = .digits_x)))
+    if (log10_y)
+        gg <- gg + scale_y_continuous(labels = function(x) format_format() (round(10^x - offset_y, digits = .digits_y)))
 
-plot(net_cut, vertex.label = NA, vertex.size = 3, edge.width = E(net_cut),
-     shape = "rectangle")
+    gg +
+        xlab("number of nodes") + ylab(plot) +
+        labs(color = "gene family") +
+        theme_classic() 
+}
 
-sapply(decompose(net_cut), plot, vertex.label = NA, vertex.size = 3, 
-    edge.width = 1, edge.arrow.size = 0.1, shape = "rectangle")
-net_cut |>
-    add_layout_(layout_nicely(), component_wise()) |>
-    plot(net_cut, vertex.label = NA, vertex.size = 3, edge.width = 1, 
-     edge.arrow.size = 0.1, shape = "rectangle")
+## average_local_efficiency
+plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+
+## average_path_length
+plot_topology_parameter(plot = "average_path_length", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## betweenness_normalized
+plot_topology_parameter(plot = "betweenness_normalized_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+plot_topology_parameter(plot = "betweenness_normalized_median", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+plot_topology_parameter(plot = "betweenness_normalized_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+plot_topology_parameter(plot = "betweenness_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "betweenness_notnormalized_median", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+
+plot_topology_parameter(plot = "closeness_normalized_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "closeness_normalized_median", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "closeness_normalized_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = FALSE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+
+plot_topology_parameter(plot = "constraint_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "constraint_median", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "constraint_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+
+plot_topology_parameter(plot = "diameter", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+
+plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "degree_normalized_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "degree_notnormalized_median", log10_x = FALSE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+
+## eccentricity
+plot_topology_parameter(plot = "eccentricity_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "eccentricity_median", log10_x = FALSE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "eccentricity_max", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+
+## edge_betweenness
+plot_topology_parameter(plot = "edge_betweenness_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "edge_betweenness_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 1) #######
+plot_topology_parameter(plot = "edge_betweenness_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## eigen_centrality
+plot_topology_parameter(plot = "eigen_centrality_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "eigen_centrality_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "eigen_centrality_value", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## global_efficiency
+plot_topology_parameter(plot = "global_efficiency", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## harmonic_centrality
+plot_topology_parameter(plot = "harmonic_centrality_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "harmonic_centrality_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "harmonic_centrality_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## neighborhood_size
+plot_topology_parameter(plot = "neighborhood_size_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "neighborhood_size_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## radius
+plot_topology_parameter(plot = "radius", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## strength
+plot_topology_parameter(plot = "strength_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "strength_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "strength_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+## shortest_paths
+plot_topology_parameter(plot = "shortest_paths_min", log10_x = FALSE, log10_y = T,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "shortest_paths_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+plot_topology_parameter(plot = "shortest_paths_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+
+
+
+
+
 ```
