@@ -436,7 +436,9 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     offset_x = 0, offset_y = 0, .model = TRUE, method = "lm", .digits_x = 0, .digits_y = 2) {
     
     ## row bind topology_bahd and topology_scpl
-    topology <- rbind(.topology_bahd[[1]], .topology_scpl[[1]])
+    bahd_data <- .topology_bahd[[1]]
+    scpl_data <- .topology_scpl[[1]]
+    topology <- rbind(bahd_data, scpl_data)
     
     ## select the columns
     topology_l <- topology |> 
@@ -450,8 +452,44 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     
     ## information on the model
     if (.model) {
-        model <- lm(topology_l[[plot]] ~ number_nodes * family, data = topology_l)
-        print(anova(model))    
+        
+        n_rep <- 10
+        
+        ## bahd
+        bahd_coefs <- lapply(seq_len(n_rep), function(i) {
+            new_rows <- sample(x = seq_len(nrow(bahd_data)), size = nrow(bahd_data), replace = TRUE)
+            new_data <- bahd_data[new_rows, ]
+            .model <- lm(new_data[[plot]] ~ number_nodes, data = new_data)
+            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+        })
+        bahd_coefs_intercept <- lapply(bahd_coefs, "[", 1) |>
+            unlist()
+        bahd_coefs_nn <- lapply(bahd_coefs, "[", 2) |> 
+            unlist()
+        
+        ## scpl
+        scpl_coefs <- lapply(seq_len(n_rep), function(i) {
+            new_rows <- sample(x = seq_len(nrow(scpl_data)), size = nrow(scpl_data), replace = TRUE)
+            new_data <- scpl_data[new_rows, ]
+            .model <- lm(new_data[[plot]] ~ number_nodes, data = new_data)
+            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+        })
+        scpl_coefs_intercept <- lapply(scpl_coefs, "[", 1) |>
+            unlist()
+        scpl_coefs_nn <- lapply(scpl_coefs, "[", 2) |> 
+            unlist()
+        df <- rbind(
+            data.frame(value = bahd_coefs_intercept, family = "BAHD", coefficient = "intercept"),
+            data.frame(value = bahd_coefs_nn, family = "BAHD", coefficient = "number_nodes"),
+            data.frame(value = scpl_coefs_intercept, family = "SCPL", coefficient = "intercept"),
+            data.frame(value = scpl_coefs_nn, family = "SCPL", coefficient = "number_nodes"))
+       
+        
+        gg <- ggboxplot(df, x = "family", y = "value") |>
+            facet(facet.by = "coefficient", scales = "free_y") +
+            stat_compare_means(comparisons = list(c("BAHD", "SCPL")))
+        print(gg)
+           
     }
     
     ## do the actual plotting
@@ -474,132 +512,178 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
 }
 
 ## average_local_efficiency
+print("average_local_efficiency")
 plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = FALSE,
     offset_x = 0, offset_y = 0, .model = FALSE)
 
 ## average_path_length
+print("average_path_length")
 plot_topology_parameter(plot = "average_path_length", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## betweenness_normalized
+print("betweenness_normalized_min")
 plot_topology_parameter(plot = "betweenness_normalized_min", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0, .model = FALSE)
+print("betweenness_normalized_median")
 plot_topology_parameter(plot = "betweenness_normalized_median", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0, .model = FALSE)
+print("betweenness_normalized_max")
 plot_topology_parameter(plot = "betweenness_normalized_max", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0, .model = FALSE)
+print("betweenness_notnormalized_min")
 plot_topology_parameter(plot = "betweenness_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0, .model = FALSE)
+print("betweenness_notnormalized_median")
 plot_topology_parameter(plot = "betweenness_notnormalized_median", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0, .model = FALSE)
+print("betweenness_notnormalized_max")
+plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE)
 
-plot_topology_parameter(plot = "closeness_normalized_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "closeness_normalized_median", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "closeness_normalized_max", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = FALSE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
+## closeness
+print("closeness_normalized_min")
+plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
+print("closeness_normalized_median")
+plot_topology_parameter(plot = "closeness_normalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
+print("closeness_normalized_max")
+plot_topology_parameter(plot = "closeness_normalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 3)
+print("closeness_notnormalized_min")
+plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+print("closeness_notnormalized_median")
+plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+print("closeness_notnormalized_max")
+plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
 
-plot_topology_parameter(plot = "constraint_min", log10_x = FALSE, log10_y = FALSE,
+## constraint
+print("constraint_min")
+plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "constraint_median", log10_x = FALSE, log10_y = FALSE,
+print("constraint_median")
+plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("constraint_max")
 plot_topology_parameter(plot = "constraint_max", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0, .model = FALSE)
 
+## diameter
+print("diameter")
 plot_topology_parameter(plot = "diameter", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
-
+## degree
+print("degree_normalized_min")
 plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("degree_normalized_median")
 plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "degree_normalized_max", log10_x = FALSE, log10_y = FALSE,
+print("degree_normalized_max")
+plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
+print("degree_notnormalized_min")
+plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+print("degree_notnormalized_median")
+plot_topology_parameter(plot = "degree_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "degree_notnormalized_median", log10_x = FALSE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = FALSE, log10_y = FALSE,
+print("degree_notnormalized_max")
+plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## eccentricity
-plot_topology_parameter(plot = "eccentricity_min", log10_x = FALSE, log10_y = FALSE,
+print("eccentricity_min")
+plot_topology_parameter(plot = "eccentricity_min", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "eccentricity_median", log10_x = FALSE, log10_y = TRUE,
+print("eccentricity_median")
+plot_topology_parameter(plot = "eccentricity_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "eccentricity_max", log10_x = FALSE, log10_y = FALSE,
+print("eccentricity_max")
+plot_topology_parameter(plot = "eccentricity_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## edge_betweenness
+print("edge_betweenness_min")
 plot_topology_parameter(plot = "edge_betweenness_min", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0)
-plot_topology_parameter(plot = "edge_betweenness_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 1) #######
+print("edge_betweenness_median")
+plot_topology_parameter(plot = "edge_betweenness_median", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+print("edge_betweenness_max")
 plot_topology_parameter(plot = "edge_betweenness_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## eigen_centrality
+print("eigen_centrality_min")
 plot_topology_parameter(plot = "eigen_centrality_min", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0)
+print("eigen_centrality_median")
 plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("eigen_centrality_max")
 plot_topology_parameter(plot = "eigen_centrality_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("eigen_centrality_value")
 plot_topology_parameter(plot = "eigen_centrality_value", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## global_efficiency
+print("global_efficiency")
 plot_topology_parameter(plot = "global_efficiency", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## harmonic_centrality
+print("harmonic_centrality_min")
 plot_topology_parameter(plot = "harmonic_centrality_min", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("harmonic_centrality_median")
 plot_topology_parameter(plot = "harmonic_centrality_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("harmonic_centrality_max")
 plot_topology_parameter(plot = "harmonic_centrality_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## neighborhood_size
-plot_topology_parameter(plot = "neighborhood_size_min", log10_x = TRUE, log10_y = TRUE,
+print("neighborhood_size_min")
+plot_topology_parameter(plot = "neighborhood_size_min", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0)
+print("neighborhood_size_median")
 plot_topology_parameter(plot = "neighborhood_size_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("neighborhood_size_max")
 plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0) 
 
 ## radius
+print("radius")
 plot_topology_parameter(plot = "radius", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0, .model = FALSE)
 
 ## strength
+print("strength_min")
 plot_topology_parameter(plot = "strength_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0, .model = FALSE)
+print("strength_median")
 plot_topology_parameter(plot = "strength_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("strength_max")
 plot_topology_parameter(plot = "strength_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 
 ## shortest_paths
-plot_topology_parameter(plot = "shortest_paths_min", log10_x = FALSE, log10_y = T,
-    offset_x = 0, offset_y = 0)
+print("shortest_paths_min")
+plot_topology_parameter(plot = "shortest_paths_min", log10_x = FALSE, log10_y = F,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+print("shortest_paths_median")
 plot_topology_parameter(plot = "shortest_paths_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
+print("shortest_paths_max")
 plot_topology_parameter(plot = "shortest_paths_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
-
-
-
-
-
 ```
