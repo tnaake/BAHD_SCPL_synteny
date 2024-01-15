@@ -139,6 +139,7 @@ membership_community$family <- strsplit(membership_community$family, split = "/"
     lapply(function(entry_i) unique(entry_i)) |>
     lapply(function(entry_i) paste(entry_i, collapse = "/")) |>
     unlist()
+write.txt(membership_community, file = "membership_community_gene_cluster_added.txt")
 ```
 
 Iterate now through the orthogroups and obtain the networks to calculate 
@@ -442,7 +443,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     
     ## select the columns
     topology_l <- topology |> 
-        select(any_of(plot), number_nodes, family)
+        dplyr::select(any_of(plot), number_nodes, family)
     
     ## transform (log) 
     if (log10_x)
