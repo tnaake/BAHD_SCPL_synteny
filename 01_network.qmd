@@ -16,7 +16,11 @@ editor: visual
 ```{r load_libraries}
 #| message: FALSE
 #| warning: FALSE
+library("dplyr")
+library("ggplot2")
+library("ggpubr")
 library("igraph")
+library("scales")
 ```
 
 # Load the files
@@ -29,13 +33,12 @@ load("bin_mat_complete_cut_tandemgenes.RData")
 ## contains bin_mat_complete_cut (9963x9963) mat_type_cut (9963x9963)
 ```
 
-## Reconstruct the network for module detection
+# Reconstruct the network for module detection
 
-Continue with the `bin_mat_complete_cut` network and obtain the network 
-components. Most of the components only contain 1 or 2 genomic sites. 
+Continue with the `bin_mat_complete_cut` network and obtain the network components. Most of the components only contain 1 or 2 genomic sites.
 
-Only continue with the 5 largest components that contain syntenic information on 
-9507 genomic sites.
+Only continue with the 5 largest components that contain syntenic information on 9507 genomic sites.
+
 ```{r}
 ## create a network from the binary matrix (cut)
 net <- graph_from_adjacency_matrix(bin_mat_complete_cut, mode="undirected", 
@@ -45,21 +48,215 @@ net <- graph_from_adjacency_matrix(bin_mat_complete_cut, mode="undirected",
 names_net <- names(membership(components(net))[which(membership(components(net)) %in% 1:5)])
 bin_mat_cut <- bin_mat_complete_cut[names_net, names_net]
 dim(bin_mat_cut)
+
+## do the same for the matrix that contains the type of link
+mat_type_cut <- mat_type_cut[names_net, names_net]
+dim(bin_mat_cut)
+```
+
+
+Manually remove some of the edges due to misclassification of MCL/Orthofinder.
+Those edges are all of type "mcscanx", i.e. they are derived from MCScanX 
+software using the Orthofinder input. The corresonding nodes are all classified 
+as BAHD.
+
+ - n381, "aquco_Aqcoe4G242100.1.p", OG0000212, group_298;
+ - n388, "aquco_Aqcoe4G257500.1.p", OG0000161, group_56;
+ - n477, "aradu_XP_015954543.1", OG0000161, group_56;
+ - n541, "araip_XP_016187645.1", OG0000161, group_56;
+ - n2059, "cansa_XP_030478657.1/cansa_XP_030478658.1/cansa_XP_030509927.1/cansa_XP_030511175.1", OG0000161/OG0000161/OG0000161/OG0000161, group_56/group_56/group_56/group_56;
+ - n2689, "citcl_XP_006427659.1", OG0000161, group_56;
+ - n2915, "citsi_orange1.1t02793.1", OG0000161, group_56;
+ - n3799, "glyma_Glyma.15G241300.1.p", OG0000161, group_56;
+ - n7411, "phavu_ESW28881", OG0000161, group_56;
+ - n8142, "selmo_Smo33608|PACid_15401917", OG0000161, group_298;
+ - n8155, "selmo_Smo407588|PACid_15419821", OG0000161, group_298;
+ - n8177, "selmo_Smo445158|PACid_15417296", OG0000212, group_56;
+ - n8178, "selmo_Smo445159|PACid_15417297", OG0000161, group_298;
+ - n8179, "selmo_Smo445441|PACid_15419570", OG0000161, group_298;
+ - n8180, "selmo_Smo64454|PACid_15402615", OG0000161, group_298;
+ - n8999, "thepa_Tp5g13300", OG0000161, group_56.
+ 
+ The MCL group "group_56" is not a defined BAHD group.
+
+
+```{r}
+## define the nodes according to the "G default node.xlsx" file
+n381 <- "aquco_Aqcoe4G242100.1.p"
+n388 <- "aquco_Aqcoe4G257500.1.p"
+n477 <- "aradu_XP_015954543.1"
+n541 <- "araip_XP_016187645.1"
+n2059 <- "cansa_XP_030478657.1/cansa_XP_030478658.1/cansa_XP_030509927.1/cansa_XP_030511175.1"
+n2689 <- "citcl_XP_006427659.1"
+n2915 <- "citsi_orange1.1t02793.1"
+n3799 <- "glyma_Glyma.15G241300.1.p"
+n7411 <- "phavu_ESW28881"
+n8142 <- "selmo_Smo33608|PACid_15401917"
+n8155 <- "selmo_Smo407588|PACid_15419821"
+n8177 <- "selmo_Smo445158|PACid_15417296"
+n8178 <- "selmo_Smo445159|PACid_15417297"
+n8179 <- "selmo_Smo445441|PACid_15419570"
+n8180 <- "selmo_Smo64454|PACid_15402615"
+n8999 <- "thepa_Tp5g13300"
+
+## n2059 (-) n8179
+mat_type_cut[n2059, n8179] <- ""
+mat_type_cut[n8179, n2059] <- ""
+bin_mat_cut[n2059, n8179] <- 0
+bin_mat_cut[n8179, n2059] <- 0
+
+## n2689 (-) n8155
+mat_type_cut[n2689, n8155] <- ""
+mat_type_cut[n8155, n2689] <- ""
+bin_mat_cut[n2689, n8155] <- 0
+bin_mat_cut[n8155, n2689] <- 0
+
+## n2689 (-) n8178
+mat_type_cut[n2689, n8178] <- ""
+mat_type_cut[n8178, n2689] <- ""
+bin_mat_cut[n2689, n8178] <- 0
+bin_mat_cut[n8178, n2689] <- 0
+
+## n2915 (-) n8179
+mat_type_cut[n2915, n8179] <- ""
+mat_type_cut[n8179, n2915] <- ""
+bin_mat_cut[n2915, n8179] <- 0
+bin_mat_cut[n8179, n2915] <- 0
+
+## n3799 (-) n8180
+mat_type_cut[n3799, n8180] <- ""
+mat_type_cut[n8180, n3799] <- ""
+bin_mat_cut[n3799, n8180] <- 0
+bin_mat_cut[n8180, n3799] <- 0
+
+## n381 (-) n8177
+mat_type_cut[n381, n8177] <- ""
+mat_type_cut[n8177, n381] <- ""
+bin_mat_cut[n381, n8177] <- 0
+bin_mat_cut[n8177, n381] <- 0
+
+## n388 (-) n8179
+mat_type_cut[n388, n8179] <- ""
+mat_type_cut[n8179, n388] <- ""
+bin_mat_cut[n388, n8179] <- 0
+bin_mat_cut[n8179, n388] <- 0
+
+## n477 (-) n8142
+mat_type_cut[n477, n8142] <- ""
+mat_type_cut[n8142, n477] <- ""
+bin_mat_cut[n477, n8142] <- 0
+bin_mat_cut[n8142, n477] <- 0
+
+## n477 (-) n8155
+mat_type_cut[n477, n8155] <- ""
+mat_type_cut[n8155, n477] <- ""
+bin_mat_cut[n477, n8155] <- 0
+bin_mat_cut[n8155, n477] <- 0
+
+## n477 (-) n8179
+mat_type_cut[n477, n8179] <- ""
+mat_type_cut[n8179, n477] <- ""
+bin_mat_cut[n477, n8179] <- 0
+bin_mat_cut[n8179, n477] <- 0
+
+## n541 (-) n8155
+mat_type_cut[n541, n8155] <- ""
+mat_type_cut[n8155, n541] <- ""
+bin_mat_cut[n541, n8155] <- 0
+bin_mat_cut[n8155, n541] <- 0
+
+## n541 (-) n8178
+mat_type_cut[n541, n8178] <- ""
+mat_type_cut[n8178, n541] <- ""
+bin_mat_cut[n541, n8178] <- 0
+bin_mat_cut[n8178, n541] <- 0
+
+## n541 (-) n8179
+mat_type_cut[n541, n8179] <- ""
+mat_type_cut[n8179, n541] <- ""
+bin_mat_cut[n541, n8179] <- 0
+bin_mat_cut[n8179, n541] <- 0
+
+## n7411 (-) n8142
+mat_type_cut[n7411, n8142] <- ""
+mat_type_cut[n8142, n7411] <- ""
+bin_mat_cut[n7411, n8142] <- 0
+bin_mat_cut[n8142, n7411] <- 0
+
+## n7411 (-) n8179
+mat_type_cut[n7411, n8179] <- ""
+mat_type_cut[n8179, n7411] <- ""
+bin_mat_cut[n7411, n8179] <- 0
+bin_mat_cut[n8179, n7411] <- 0
+
+## n8142 (-) n8999
+mat_type_cut[n8142, n8999] <- ""
+mat_type_cut[n8999, n8142] <- ""
+bin_mat_cut[n8142, n8999] <- 0
+bin_mat_cut[n8999, n8142] <- 0
+```
+
+
+Create now a network from the `bin_mat_cut` adjacency matrix.
+
+```{r}
+## create a network from the bin_mat_cut adjacency matrix
 net_cut <- graph_from_adjacency_matrix(bin_mat_cut, mode = "undirected", 
     diag = FALSE, weighted = TRUE)
 ```
 
-Load membership information from community detection and store in 
-`membership_community`.
+How many network components do we have now after manual removal of the false 
+edges?
 
 ```{r}
-membership_community <- read.csv("members.csv")
+length(decompose(net_cut))
 ```
 
-Add to the `membership_community` object information on the orthogroup and MCL 
+## Create membership information 
+
+After removal, recalculate the communities using the following algorithms:
+
+ - fastgreedy.community (fc),
+ - walktrap.community (wc),
+ - leading.eigenvector.community (le),
+ - label.propagation.community (lp),
+ - multilevel.community (ml),
+ - infomap.community (im)
+
+
+Create a `membership_community` object to store the results in.
+```{r community_detection, cache = TRUE}
+## https://stackoverflow.com/questions/9471906/what-are-the-differences-between-community-detection-algorithms-in-igraph
+fc <- fastgreedy.community(net_cut, modularity = TRUE)
+wc <- walktrap.community(net_cut, modularity = TRUE, steps = 15, 
+    weights = E(net_cut)$weight)
+le <- leading.eigenvector.community(net_cut, steps = 15, 
+    weights = E(net_cut)$weight)
+lp <- label.propagation.community(net_cut, weights = E(net_cut)$weight)
+ml <- multilevel.community(net_cut, weights = E(net_cut)$weight)
+im <- infomap.community(net_cut, e.weights = E(net_cut)$weight, 
+    nb.trials = 100, modularity = TRUE)
+
+## combine all cluster detection results to a matrix 
+if (!all(names(membership(fc)) == names(membership(wc))))
+    stop()
+if (!all(names(membership(fc)) == names(membership(le))))
+    stop()
+if (!all(names(membership(fc)) == names(membership(lp))))
+    stop()
+if (!all(names(membership(fc)) == names(membership(ml))))
+    stop()
+if (!all(names(membership(fc)) == names(membership(im))))
+    stop()
+membership_community <- data.frame(X = names(membership(fc)), fc = membership(fc), 
+    wc = membership(wc), le = membership(le), 
+    lp = membership(lp), ml = membership(ml), im = membership(im))
+```
+
+Add to the `membership_community` object information on the orthogroup and MCL
 membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
 
-```{r}
+```{r add_information_on_orthogroup_mcl, cache = TRUE}
 ## add empty columns
 membership_community$og <- "unknown"
 membership_community$mcl <- "unknown"
@@ -139,13 +336,15 @@ membership_community$family <- strsplit(membership_community$family, split = "/"
     lapply(function(entry_i) unique(entry_i)) |>
     lapply(function(entry_i) paste(entry_i, collapse = "/")) |>
     unlist()
-write.txt(membership_community, file = "membership_community_gene_cluster_added.txt")
+write.table(membership_community, file = "membership_community_gene_cluster_added.txt")
 ```
 
-Iterate now through the orthogroups and obtain the networks to calculate 
-network topology parameters.
+# Calculate topological parameters
 
-```{r}
+Iterate now through the orthogroups and obtain the networks to calculate network topology parameters.
+
+Define helper functions.
+```{r fcts_topological_parameters}
 ## calculate topological parameters
 calculate_topological_parameters <- function(.component) {
         
@@ -419,7 +618,10 @@ get_topology_for_components <- function(og = og_bahd) {
     
     list(topological_parameters = topological_parameters, component_size = component_size)
 }
+```
 
+Apply the function on orthogroups of BAHD and SCPL genes
+```{r calculate_topology_parameters}
 ## apply the function on orthogroups of BAHD and SCPL genes
 topology_bahd <- get_topology_for_components(og = og_bahd)
 topology_scpl <- get_topology_for_components(og = og_scpl)
@@ -429,9 +631,11 @@ topology_bahd[[1]]$family <- "BAHD"
 topology_scpl[[1]]$family <- "SCPL"
 ```
 
+## Plotting 
+
 Do the actual plotting.
 
-```{r}
+```{r fcts_plot_topology_parameters}
 plot_topology_parameter <- function(.topology_bahd = topology_bahd, 
     .topology_scpl = topology_scpl, plot = "degree", log10_x = FALSE, log10_y = FALSE,
     offset_x = 0, offset_y = 0, .model = TRUE, method = "lm", .digits_x = 0, .digits_y = 2) {
@@ -443,7 +647,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     
     ## select the columns
     topology_l <- topology |> 
-        dplyr::select(any_of(plot), number_nodes, family)
+        dplyr::select(any_of(plot), number_nodes, family, component)
     
     ## transform (log) 
     if (log10_x)
@@ -451,10 +655,36 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     if (log10_y)
         topology_l[[plot]] <- log10(topology_l[[plot]] + offset_y)
     
+    ## do the actual plotting
+    gg <- topology_l |>
+        ggplot(aes(x = number_nodes, y = .data[[plot]], color = family)) +
+            geom_point() +
+            suppressWarnings(ggplot2::geom_point(ggplot2::aes(text = component)))
+    if (.model)
+        gg <- gg +
+            geom_smooth(method = method, se = FALSE, alpha = 0.02)
+    
+    if (log10_x)
+        gg <- gg + scale_x_continuous(
+            labels = function(x) format_format() (round(10^x - offset_x, digits = .digits_x)))
+    if (log10_y)
+        gg <- gg + scale_y_continuous(
+            labels = function(x) format_format() (round(10^x - offset_y, digits = .digits_y)))
+
+    gg_scatter <- gg +
+        xlab("number of nodes per component") + ylab(plot) +
+        ggtitle(plot) +
+        labs(color = "gene family") +
+        theme_classic() 
+            
+    gg_scatter_plotly <- plotly::ggplotly(gg_scatter, tooltip = c("text")) |>
+        plotly::partial_bundle()
+    
     ## information on the model
     if (.model) {
         
-        n_rep <- 10
+        n_rep <- min(nrow(scpl_data), nrow(bahd_data))
+        print(paste("The function will perform", n_rep, "bootstrap repetitions.", sep = " "))
         
         ## bahd
         bahd_coefs <- lapply(seq_len(n_rep), function(i) {
@@ -486,205 +716,668 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
             data.frame(value = scpl_coefs_nn, family = "SCPL", coefficient = "number_nodes"))
        
         
-        gg <- ggboxplot(df, x = "family", y = "value") |>
+        gg_boxplot <- ggboxplot(df, x = "family", y = "value", title = plot) |>#, 
+                #facet.by = "coefficient", scales = "free_y") |>
             facet(facet.by = "coefficient", scales = "free_y") +
-            stat_compare_means(comparisons = list(c("BAHD", "SCPL")))
-        print(gg)
-           
+            stat_compare_means(comparisons = list(c("BAHD", "SCPL")), method = "t.test")
+        
+        ttest_intercept <- t.test(bahd_coefs_intercept, scpl_coefs_intercept)
+        ttest_nn <- t.test(bahd_coefs_nn, scpl_coefs_nn)
+        
+        df_ttest <- data.frame(intercept_t = ttest_intercept$statistic, 
+            intercept_df = ttest_intercept$parameter, 
+            intercept_p = ttest_intercept$p.value,
+            nn_t = ttest_nn$statistic, nn_df = ttest_nn$parameter, 
+            nn_p = ttest_nn$p.value)
+        rownames(df_ttest) <- plot
+        
+        list(scatter = gg_scatter, scatter_plotly = gg_scatter_plotly, 
+            bootstrap = gg_boxplot, ttest = df_ttest)
+    } else {
+        list(scatter = gg_scatter, scatter_plotly = gg_scatter_plotly)    
     }
-    
-    ## do the actual plotting
-    gg <- topology_l |>
-        ggplot(aes(x = number_nodes, y = .data[[plot]], color = family)) +
-            geom_point()
-    if (.model)
-        gg <- gg +
-            geom_smooth(method = method, se = FALSE, alpha = 0.02)
-    
-    if (log10_x)
-        gg <- gg + scale_x_continuous(labels = function(x) format_format() (round(10^x - offset_x, digits = .digits_x)))
-    if (log10_y)
-        gg <- gg + scale_y_continuous(labels = function(x) format_format() (round(10^x - offset_y, digits = .digits_y)))
+}
+```
 
-    gg +
-        xlab("number of nodes") + ylab(plot) +
-        labs(color = "gene family") +
-        theme_classic() 
+### average_local_efficiency
+
+```{r average_local_efficiency}
+## average_local_efficiency
+tp <- plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+```
+
+### average_path_length
+
+```{r average_path_length}
+## average_path_length
+tp <- plot_topology_parameter(plot = "average_path_length", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_average_path_length <- tp$ttest
+```
+
+### betweenness_normalized
+
+```{r betweenness_normalized}
+## betweenness_normalized
+tp <- plot_topology_parameter(plot = "betweenness_normalized_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "betweenness_normalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+plot_topology_parameter(plot = "betweenness_normalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "betweenness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "betweenness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 1, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_betweenness_notnormalized_max <- tp$ttest
+```
+
+### closeness
+
+```{r closeness}
+## closeness
+tp <- plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_closeness_normalized_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "closeness_normalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_closeness_normalized_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "closeness_normalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 3)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_closeness_normalized_max <- tp$ttest
+tp <- plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_closeness_notnormalized_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_closeness_notnormalized_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_closeness_notnormalized_max <- tp$ttest
+```
+
+### constraint
+
+```{r constraint}
+## constraint
+tp <- plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_constraint_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_constraint_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "constraint_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+```
+
+### diameter
+
+```{r diameter}
+## diameter
+tp <- plot_topology_parameter(plot = "diameter", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_diameter <- tp$ttest
+```
+
+### degree
+
+```{r degree}
+## degree
+tp <- plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_degree_normalized_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_degree_normalized_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_degree_normalized_max <- tp$ttest
+tp <- plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "degree_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_degree_notnormalized_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_degree_notnormalized_max <- tp$ttest
+```
+
+### eccentricity
+
+```{r eccentricity}
+## eccentricity
+tp <- plot_topology_parameter(plot = "eccentricity_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_eccentricity_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "eccentricity_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_eccentricity_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "eccentricity_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_eccentricity_max <- tp$ttest
+```
+
+### edge_betweenness
+
+```{r edge_betweenness}
+## edge_betweenness
+tp <- plot_topology_parameter(plot = "edge_betweenness_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_edge_betweenness_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "edge_betweenness_median", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_edge_betweenness_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "edge_betweenness_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_edge_betweenness_max <- tp$ttest
+```
+
+### eigen_centrality
+
+```{r eigen_centrality}
+## eigen_centrality
+tp <- plot_topology_parameter(plot = "eigen_centrality_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_eigen_centrality_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "eigen_centrality_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_eigen_centrality_max <- tp$ttest
+tp <- plot_topology_parameter(plot = "eigen_centrality_value", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_eigen_centrality_value <- tp$ttest
+```
+
+### global_efficiency
+
+```{r global_efficiency}
+## global_efficiency
+tp <- plot_topology_parameter(plot = "global_efficiency", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_global_efficiency <- tp$ttest
+```
+
+### harmonic_centrality
+
+```{r harmonic_centrality}
+## harmonic_centrality
+tp <- plot_topology_parameter(plot = "harmonic_centrality_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_harmonic_centrality_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "harmonic_centrality_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_harmonic_centrality_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "harmonic_centrality_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_harmonic_centrality_max <- tp$ttest
+```
+
+### neighborhood_size
+
+```{r neighborhood_size}
+## neighborhood_size
+tp <- plot_topology_parameter(plot = "neighborhood_size_min", log10_x = FALSE, log10_y = FALSE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "neighborhood_size_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_neighborhood_size_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0) 
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_neighborhood_size_max <- tp$ttest
+```
+
+### radius
+
+```{r radius}
+## radius
+tp <- plot_topology_parameter(plot = "radius", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+```
+
+### strength
+
+```{r strength}
+## strength
+tp <- plot_topology_parameter(plot = "strength_min", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "strength_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_strength_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "strength_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_strength_max <- tp$ttest
+```
+
+### shortest_paths
+
+```{r shortest_paths}
+tp <- plot_topology_parameter(plot = "shortest_paths_min", log10_x = FALSE, log10_y = F,
+    offset_x = 0, offset_y = 0, .model = FALSE)
+tp$scatter
+tp$scatter_plotly
+# tp$bootstrap
+# tp$ttest
+tp <- plot_topology_parameter(plot = "shortest_paths_median", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_shortest_paths_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "shortest_paths_max", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0)
+tp$scatter
+tp$scatter_plotly
+tp$bootstrap
+ttest_shortest_paths_max <- tp$ttest
+```
+
+### Multiple testing correction via FDR
+
+Combine first the test results. Then adjust via FDR using the Benjamini-Hochberg
+method the raw p-values using the number of models.
+```{r multiple_testing_correction}
+ttest_df <- rbind(
+    ttest_average_path_length,
+    ttest_betweenness_notnormalized_max,
+    ttest_closeness_normalized_min,
+    ttest_closeness_normalized_median,
+    ttest_closeness_normalized_max,
+    ttest_closeness_notnormalized_min,
+    ttest_closeness_notnormalized_median,
+    ttest_closeness_notnormalized_max,
+    ttest_constraint_min,
+    ttest_constraint_median,
+    ttest_diameter,
+    ttest_degree_normalized_min,
+    ttest_degree_normalized_median,
+    ttest_degree_normalized_max,
+    ttest_degree_notnormalized_median,
+    ttest_degree_notnormalized_max,
+    ttest_eccentricity_min,
+    ttest_eccentricity_median,
+    ttest_eccentricity_max,
+    ttest_edge_betweenness_min,
+    ttest_edge_betweenness_median,
+    ttest_edge_betweenness_max,
+    ttest_eigen_centrality_median,
+    ttest_eigen_centrality_max,
+    ttest_eigen_centrality_value,
+    ttest_global_efficiency,
+    ttest_harmonic_centrality_min,
+    ttest_harmonic_centrality_median,
+    ttest_harmonic_centrality_max,
+    ttest_neighborhood_size_median,
+    ttest_neighborhood_size_max,
+    ttest_strength_median,
+    ttest_strength_max,
+    ttest_shortest_paths_median,
+    ttest_shortest_paths_max)
+ttest_df$intercept_p_adj <- p.adjust(ttest_df$intercept_p, method = "BH")
+ttest_df$nn_p_adj <- p.adjust(ttest_df$nn_p, method = "BH")
+```
+
+Return the table with all the information (t-values, df, raw p-values, adjusted
+p-values) for the intercept and the `number_nodes` parameter (gradient).
+````{r}
+## return the final table
+rmarkdown::paged_table(ttest_df)
+```
+
+What are the parameters that both show differences in the intercept and 
+`number_nodes` parameter.
+
+```{r}
+rmarkdown::paged_table(ttest_df[ttest_df$intercept_p_adj <= 0.05 & ttest_df$nn_p_adj <= 0.05, ])
+```
+
+# Cliques
+
+Find all complete subgraphs in the input graph.
+
+Define functions.
+```{r fcts_cliques}
+#' @name find_largest_non_overlapping_cliques
+#' 
+#' @title Find largest non-overlapping cliques
+#' 
+#' @description The function will find largest cliques that are not 
+#' overlapping. The function will start with the largest possible clique
+#' and remove the used nodes. It will then find the second largest possible 
+#' clique and remove again the nodes in that clique. This procedure is repeated
+#' until all nodes in the original network \code{g}. This might mean that
+#' that some of the nodes in \code{g} will be a assigned to cliques of size 1.
+#' 
+#' The function will select randomly a clique if there are several largest
+#' possible cliques. This will mean the function might yield different 
+#' results when applying the function on the same network.
+#' 
+#' @param g igraph network
+find_largest_non_overlapping_cliques <- function(g) {
+    
+    non_overlapping_cliques <- list()
+    while (vcount(g) > 0) {
+        ## find maximal clique in the current graph and select the first one 
+        clique <- largest_cliques(g)
+        ## select randomly the largest clique
+        clique <- clique[[sample(x = seq_len(length(clique)), size = 1)]] |>
+            names()
+    
+        if (length(clique) > 0) {
+            ## add the clique to the result
+            non_overlapping_cliques <- c(non_overlapping_cliques, list(clique))
+      
+            ## Remove the nodes of the clique from the graph
+            g <- delete_vertices(g, clique)
+        } else {
+            ## no more cliques can be found
+            break
+        }
+    }
+
+    ## return the object  
+    non_overlapping_cliques
 }
 
-## average_local_efficiency
-print("average_local_efficiency")
-plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+#' @name greedy_clique
+#' 
+#' @title Perform a greedy clique determination over all network components
+#' 
+#' @description The function
+#' ## TODO: add randomness in selecting the maximal.clique and let run n times, select the result with highest median of members 
+#' 
+greedy_clique <- function(g, n_rep = 100) {
+    .components <- igraph::decompose(graph = g)
+    
+    cliques_l <- list()
+    ## create a nested list, the outer list for the components, the middle 
+    ## list contains the repetitions, the inner list contains the clique information
+    for (i in seq_along(.components)) {
+        cliques_l[[i]] <- lapply(seq_len(n_rep), 
+            function(j) find_largest_non_overlapping_cliques(g = .components[[i]]))
+    }
+    
+    ## obtain the number of items in each clique clique_i
+    len_clique <- lapply(cliques_l, function(cliques) {
+        lapply(cliques, function(clique_i) {unlist(lapply(clique_i, length))})
+    })
+    
+    ## get the repetitions with the lowest number of cliques, the object will
+    ## be a list of length(number of components) containing for each repetition
+    ## the number of cliques
+    len_cliques <- lapply(len_clique, function(len_clique_i) {
+        len_clique_i_l <- lapply(len_clique_i, length)
+        unlist(len_clique_i_l)})
+    inds_len_cliques <- lapply(len_cliques, function(len_i) len_i == min(len_i))
+    
+    ## get from these lowest number cliques, the clique with the highest median
+    clique_median <- lapply(len_clique, function(len_clique_i) {
+        
+        unlist(lapply(len_clique_i, median))
+        ##len_clique_i <- len_clique_i[inds_len_cliques[[i]]]
+    })
+    inds_median_max_cliques <- lapply(seq_along(clique_median), function(i) {
+        max_median <- max(clique_median[[i]][inds_len_cliques[[i]]])
+        clique_median[[i]] == max_median
+    })
+    
+    ## combine the lowest number and median information
+    inds_combined <- lapply(seq_along(inds_len_cliques), function(i) {
+        which(inds_len_cliques[[i]] & inds_median_max_cliques[[i]])[1]
+    })
+    
+    ## obtain the final clique for each component
+    lapply(seq_along(cliques_l), function(i) {
+        cliques_l[[i]][[inds_combined[[i]]]]
+    })
+}
+```
 
-## average_path_length
-print("average_path_length")
-plot_topology_parameter(plot = "average_path_length", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+Run the greedy clique determination (each with 100 repetitions) on two different inputs 
 
-## betweenness_normalized
-print("betweenness_normalized_min")
-plot_topology_parameter(plot = "betweenness_normalized_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("betweenness_normalized_median")
-plot_topology_parameter(plot = "betweenness_normalized_median", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("betweenness_normalized_max")
-plot_topology_parameter(plot = "betweenness_normalized_max", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("betweenness_notnormalized_min")
-plot_topology_parameter(plot = "betweenness_notnormalized_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("betweenness_notnormalized_median")
-plot_topology_parameter(plot = "betweenness_notnormalized_median", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("betweenness_notnormalized_max")
-plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE)
+ - using the network derived from MCL groups and Orthofinder orthogroups,
+ - using the network derived from Orthofinder orthogroups,
 
-## closeness
-print("closeness_normalized_min")
-plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
-print("closeness_normalized_median")
-plot_topology_parameter(plot = "closeness_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
-print("closeness_normalized_max")
-plot_topology_parameter(plot = "closeness_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 3)
-print("closeness_notnormalized_min")
-plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
-print("closeness_notnormalized_median")
-plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
-print("closeness_notnormalized_max")
-plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+## MCL group and Orthofinder orthogroup input 
 
-## constraint
-print("constraint_min")
-plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("constraint_median")
-plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("constraint_max")
-plot_topology_parameter(plot = "constraint_max", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+First step is to transform the weighted matrix into a binary matrix. All 
+weights `>= 0.25` will have a binary weight of 1. 
 
-## diameter
-print("diameter")
-plot_topology_parameter(plot = "diameter", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+```{r}
+bin_mat_clique_og_mcl <- bin_mat_cut
+bin_mat_clique_og_mcl[bin_mat_clique_og_mcl >= .25] <- 1
+```
 
-## degree
-print("degree_normalized_min")
-plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("degree_normalized_median")
-plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("degree_normalized_max")
-plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("degree_notnormalized_min")
-plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("degree_notnormalized_median")
-plot_topology_parameter(plot = "degree_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("degree_notnormalized_max")
-plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+Apply now the function on the graph (for MCL group and Orthofinder orthogroup 
+input).
 
-## eccentricity
-print("eccentricity_min")
-plot_topology_parameter(plot = "eccentricity_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("eccentricity_median")
-plot_topology_parameter(plot = "eccentricity_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("eccentricity_max")
-plot_topology_parameter(plot = "eccentricity_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+```{r clique_og_mcl, cache = TRUE}
+g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og_mcl, mode = "undirected", 
+    weighted = NULL, diag = FALSE)
+cliques_greedy <- greedy_clique(g, n_rep = 100)
 
-## edge_betweenness
-print("edge_betweenness_min")
-plot_topology_parameter(plot = "edge_betweenness_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-print("edge_betweenness_median")
-plot_topology_parameter(plot = "edge_betweenness_median", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-print("edge_betweenness_max")
-plot_topology_parameter(plot = "edge_betweenness_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+## write the result to membership_community
+membership_community$component_og_mcl <- "unknown"
+membership_community$clique_og_mcl <- "unknown"
 
-## eigen_centrality
-print("eigen_centrality_min")
-plot_topology_parameter(plot = "eigen_centrality_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-print("eigen_centrality_median")
-plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("eigen_centrality_max")
-plot_topology_parameter(plot = "eigen_centrality_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("eigen_centrality_value")
-plot_topology_parameter(plot = "eigen_centrality_value", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+for (component_i in seq_along(cliques_greedy)) {
+    
+    component_name <- paste("component", component_i, sep = "_")
+    for (clique_i in seq_along(cliques_greedy[[component_i]])) {
+        clique_name <- paste(component_name, "clique", clique_i, sep = "_")
+        
+        ## find the rows of the members of the clique and write to membership_community
+        ind_rows <- which(membership_community$X %in% cliques_greedy[[component_i]][[clique_i]])
+        membership_community[ind_rows, "component_og_mcl"] <- component_name
+        membership_community[ind_rows, "clique_og_mcl"] <- clique_i
+    }
+}
+```
 
-## global_efficiency
-print("global_efficiency")
-plot_topology_parameter(plot = "global_efficiency", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+## Only Orthofinder orthogroup input 
 
-## harmonic_centrality
-print("harmonic_centrality_min")
-plot_topology_parameter(plot = "harmonic_centrality_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("harmonic_centrality_median")
-plot_topology_parameter(plot = "harmonic_centrality_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("harmonic_centrality_max")
-plot_topology_parameter(plot = "harmonic_centrality_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+First step is to transform the weighted matrix into a binary matrix. 
+Set all edges that do not contain information from Orthofinder to 0, in other words
+set the edges that are only derived from the MCL input to 0. 
 
-## neighborhood_size
-print("neighborhood_size_min")
-plot_topology_parameter(plot = "neighborhood_size_min", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0)
-print("neighborhood_size_median")
-plot_topology_parameter(plot = "neighborhood_size_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("neighborhood_size_max")
-plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0) 
+Then set all weights `>= 0.25` to a binary weight of 1. 
 
-## radius
-print("radius")
-plot_topology_parameter(plot = "radius", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+```{r}
+bin_mat_clique_og <- bin_mat_cut
+## define the types that only contain information from MCL
+## tmp <- names(table(bin_mat_type))
+## tmp[!grepl(tmp, pattern = "iadhore$|iadhore/|mcscanx$|mcscanx/")]
+bin_mat_clique_og[
+    mat_type_cut %in% c("iadhore_mcl", "iadhore_mcl/mcscanx_mcl", "mcscanx_mcl")] <- 0
+bin_mat_clique_og[bin_mat_clique_og >= .25] <- 1
+```
 
-## strength
-print("strength_min")
-plot_topology_parameter(plot = "strength_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("strength_median")
-plot_topology_parameter(plot = "strength_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("strength_max")
-plot_topology_parameter(plot = "strength_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+Apply now the function on the graph (for Orthofinder orthogroup input only).
 
-## shortest_paths
-print("shortest_paths_min")
-plot_topology_parameter(plot = "shortest_paths_min", log10_x = FALSE, log10_y = F,
-    offset_x = 0, offset_y = 0, .model = FALSE)
-print("shortest_paths_median")
-plot_topology_parameter(plot = "shortest_paths_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
-print("shortest_paths_max")
-plot_topology_parameter(plot = "shortest_paths_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+```{r clique_og, cache = TRUE}
+g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og, mode = "undirected", 
+    weighted = NULL, diag = FALSE)
+cliques_greedy <- greedy_clique(g, n_rep = 100)
+
+## write the result to membership_community
+membership_community$component_og <- "unknown"
+membership_community$clique_og <- "unknown"
+
+for (component_i in seq_along(cliques_greedy)) {
+    
+    component_name <- paste("component", component_i, sep = "_")
+    for (clique_i in seq_along(cliques_greedy[[component_i]])) {
+        clique_name <- paste(component_name, "clique", clique_i, sep = "_")
+        
+        ## find the rows of the members of the clique and write to membership_community
+        ind_rows <- which(membership_community$X %in% cliques_greedy[[component_i]][[clique_i]])
+        membership_community[ind_rows, "component_og"] <- component_name
+        membership_community[ind_rows, "clique_og"] <- clique_i
+    }
+}
+```
+
+## Export the membership_community file
+
+Export the membership community object
+
+```{r export_membership_community}
+write.table(membership_community, file = "membership_community.csv", 
+    sep = ",", dec = ".", quote = FALSE, row.names = FALSE)
+```
+
+Export also the network file derived from the adjacency matrix `bin_mat_cut`.
+
+```{r export_net_cut}
+write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", format = "graphml")
 ```
