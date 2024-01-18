@@ -336,8 +336,10 @@ membership_community$family <- strsplit(membership_community$family, split = "/"
     lapply(function(entry_i) unique(entry_i)) |>
     lapply(function(entry_i) paste(entry_i, collapse = "/")) |>
     unlist()
-write.table(membership_community, file = "membership_community_gene_cluster_added.txt")
+write.table(membership_community, file = "membership_community_gene_cluster_added.txt", 
+    quote = FALSE, row.names = FALSE, sep = "\t")
 ```
+
 
 # Calculate topological parameters
 
@@ -1169,7 +1171,7 @@ ttest_df$nn_p_adj <- p.adjust(ttest_df$nn_p, method = "BH")
 
 Return the table with all the information (t-values, df, raw p-values, adjusted
 p-values) for the intercept and the `number_nodes` parameter (gradient).
-````{r}
+```{r}
 ## return the final table
 rmarkdown::paged_table(ttest_df)
 ```
@@ -1233,8 +1235,16 @@ find_largest_non_overlapping_cliques <- function(g) {
 #' 
 #' @title Perform a greedy clique determination over all network components
 #' 
-#' @description The function
-#' ## TODO: add randomness in selecting the maximal.clique and let run n times, select the result with highest median of members 
+#' @description 
+#' The function applies the function \code{find_largest_non_overlapping_cliques} 
+#' on each network component of \code{g}. The function
+#' \code{find_largest_non_overlapping_cliques} is run \code{nrep}-times
+#' on the algorithms to select randomly the largest cliques in each step and
+#' to continue selecting the 2nd largest clique and so on.
+#' 
+#' The optimal result is then determined by the length of found cliques
+#' (preferred are a smaller number of cliques) and a high median membership
+#' of genomic regions.
 #' 
 greedy_clique <- function(g, n_rep = 100) {
     .components <- igraph::decompose(graph = g)
@@ -1319,7 +1329,7 @@ for (component_i in seq_along(cliques_greedy)) {
         ## find the rows of the members of the clique and write to membership_community
         ind_rows <- which(membership_community$X %in% cliques_greedy[[component_i]][[clique_i]])
         membership_community[ind_rows, "component_og_mcl"] <- component_name
-        membership_community[ind_rows, "clique_og_mcl"] <- clique_i
+        membership_community[ind_rows, "clique_og_mcl"] <- clique_name
     }
 }
 ```
@@ -1362,7 +1372,7 @@ for (component_i in seq_along(cliques_greedy)) {
         ## find the rows of the members of the clique and write to membership_community
         ind_rows <- which(membership_community$X %in% cliques_greedy[[component_i]][[clique_i]])
         membership_community[ind_rows, "component_og"] <- component_name
-        membership_community[ind_rows, "clique_og"] <- clique_i
+        membership_community[ind_rows, "clique_og"] <- clique_name
     }
 }
 ```
@@ -1381,3 +1391,175 @@ Export also the network file derived from the adjacency matrix `bin_mat_cut`.
 ```{r export_net_cut}
 write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", format = "graphml")
 ```
+
+
+# Plot the network
+
+## fastgreedy.community
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "fc"])
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## walktrap.community
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "wc"])
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## leading.eigenvector.community
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "le"])
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## label.propagation.community
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "lp"])
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## multilevel.community
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "ml"])
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## infomap.community
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "im"])
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## og
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "og"])
+        .color <- lapply(strsplit(as.character(.color), split = "/"),
+            function(.color_i) paste(unique(.color_i), collapse = "/")) |>
+            unlist() |>
+            as.factor()
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## mcl 
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "mcl"])
+        .color <- lapply(strsplit(as.character(.color), split = "/"),
+            function(.color_i) paste(unique(.color_i), collapse = "/")) |>
+            unlist() |>
+            as.factor()
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
+## component_og_mcl 
+
+```{r}
+if (all(names(V(net_cut)) == membership_community$X)) {
+    .components <- decompose(net_cut)
+    
+    for (i in seq_along(.components)) {
+        ## define the color
+        .color <- as.factor(membership_community[
+            match(names(V(.components[[i]])), membership_community$X), "component_og_mcl"])
+        
+        ## do the actual plotting
+        plot(.components[[i]], vertex.label = NA, vertex.size = 3,
+             vertex.color = .color, main = paste("Component", i))
+    }
+}
+```
+
