@@ -979,11 +979,11 @@ ttest_edge_betweenness_max <- tp$ttest
 ```{r eigen_centrality, warning=FALSE, message=FALSE}
 ## eigen_centrality
 tp <- plot_topology_parameter(plot = "eigen_centrality_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+    offset_x = 0, offset_y = 0, .model = TRUE)
 tp$scatter
 tp$scatter_plotly
-# tp$bootstrap
-# tp$ttest
+tp$bootstrap
+ttest_eigen_centrality_min <- tp$ttest
 tp <- plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 tp$scatter
@@ -1151,6 +1151,7 @@ ttest_df <- rbind(
     ##ttest_edge_betweenness_min,
     ##ttest_edge_betweenness_median,
     ttest_edge_betweenness_max,
+    ttest_eigen_centrality_min,
     ttest_eigen_centrality_median,
     ttest_eigen_centrality_max,
     ttest_eigen_centrality_value,
