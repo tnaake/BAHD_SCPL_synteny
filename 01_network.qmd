@@ -227,7 +227,8 @@ After removal, recalculate the communities using the following algorithms:
 Create a `membership_community` object to store the results in.
 ```{r community_detection, cache = TRUE}
 ## https://stackoverflow.com/questions/9471906/what-are-the-differences-between-community-detection-algorithms-in-igraph
-fc <- fastgreedy.community(net_cut, modularity = TRUE)
+fc <- fastgreedy.community(net_cut, modularity = TRUE, 
+    weights = E(net_cut)$weight)
 wc <- walktrap.community(net_cut, modularity = TRUE, steps = 15, 
     weights = E(net_cut)$weight)
 le <- leading.eigenvector.community(net_cut, steps = 15, 
