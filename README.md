@@ -1,4 +1,4 @@
-# Analysis of syntenic relationships of BAHD and SCPL-containing genomic regions using a network approach
+# Analysis of syntenic relationships of BAHD- and SCPL-containing genomic regions using a network approach
 
 Scripts to create the synteny network of BAHD- and SCPL-containing genomic regions. 
 
