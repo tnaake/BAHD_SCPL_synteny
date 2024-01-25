@@ -97,7 +97,7 @@ Scripts to create the synteny network of BAHD and SCPL genes.
             eccentricity, edge betweenness, eigencentrality, global 
             efficiency, harmonic centrality, neighborhood size, radius, 
             strength, and shortest paths.
-        - Lionear models: Bootstrap analysis and t-tests are performed for 
+        - Linear models: Bootstrap analysis and t-tests are performed for 
             topological parameters to compare differences between 
             BAHD and SCPL gene families.
 
