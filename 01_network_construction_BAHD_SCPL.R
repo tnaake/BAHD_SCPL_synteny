@@ -1,7 +1,7 @@
 ## setwd
 setwd("~/AG-Fernie/Thomas/Data/synteny")
 
-library(igraph)
+library("igraph")
 
 ## get TPS genes from output of Orthofinder or MCL
 genes_table <- read.table("./Results_Nov05/family_orthogroups.txt", sep = "\t", 
@@ -12,12 +12,14 @@ bs_genes <- sort(genes_table[genes_table[, 2] %in% ## for OrthoFinder
       "OG0000185", "OG0000121", "OG0001568", "OG0001444", "OG0003193", ## SCP&SCPL-ATs
       "OG0003286"), 1]) ## SCP&SCPL-ATs                 
   
-genes_table_mcl <- read.table("./Results_Nov05/family_orthogroups_mcl15.txt", sep = "\t", header = FALSE, stringsAsFactors = FALSE)
+genes_table_mcl <- read.table("./Results_Nov05/family_orthogroups_mcl15.txt", 
+    sep = "\t", header = FALSE, stringsAsFactors = FALSE)
 bs_genes_mcl <- sort(genes_table_mcl[genes_table_mcl[, 2] %in% ## for mcl
     c("group_414", "group_298", "group_1084", "group_179", "group_56", ## BAHD-ATs
-      "group_50"), 1]) ## SCP-SCPL-ATs
+        "group_50"), 1]) ## SCP-SCPL-ATs
 
-## vector with all TPS genes identified by orthofinder and mcl, use this to create the bin_mat_... matrices
+## vector with all TPS genes identified by orthofinder and mcl, use this to 
+## create the bin_mat_... matrices
 bs_genes_all <- sort(unique(c(bs_genes, bs_genes_mcl)))
 
 ## make the genes unique
@@ -25,17 +27,11 @@ bs_genes <- unique(bs_genes)
 bs_genes_mcl <- unique(bs_genes_mcl)
 bs_genes_all <- unique(bs_genes_all)
 
-# ## load information on pks genes
-# supp <- openxlsx::read.xlsx("~/winhome/Documents/03_Syntenic_linkage/01_Data/synteny_network_results/pks_genes_tree_id_type.xlsx", 
-#             sheet = "pks_genes_tree_id_type")
-# supp <- supp[, 1:27]
-
-## save the pks_genes
-setwd("~/AG-Fernie/Federico/BAHD_SCPL_synteny/")
+## save the genes
 save(bs_genes, bs_genes_mcl, bs_genes_all, file = "./bs_genes.RData")
 
 ## i-ADHore
-## function to find synteny by finding pks_genes in i-ADHore output
+## function to find synteny by finding genes in i-ADHore output
 find_synteny <- function(files, bin_mat, genes) {
     ## loop through files
     for (i in seq_along(files)) {
@@ -61,7 +57,7 @@ find_synteny <- function(files, bin_mat, genes) {
     return(bin_mat)
 }
 
-## function to find tandem by finding pks_genes in i-ADHoRe output
+## function to find tandem by finding genes in i-ADHoRe output
 find_tandem <- function(files, bin_mat, genes) {
     
     tandem_list <- vector("list", length(files))
@@ -84,8 +80,8 @@ find_tandem <- function(files, bin_mat, genes) {
 }
 
 ## load i-ADHore results from Orthofinder input
-setwd("~/AG-Fernie/Thomas/Data/synteny/synteny_iadhore/output/")
-output_files <- list.files()[grep(list.files(), pattern = "output_")]
+.path <- "~/AG-Fernie/Thomas/Data/synteny/synteny_iadhore/output/"
+output_files <- list.files(.path)[grep(list.files(.path), pattern = "output_")]
 
 ## create binary matrix that will store if there exists a collinear or tandem
 ## relationship or not
@@ -97,8 +93,8 @@ bin_mat <- find_synteny(output_files, bin_mat, bs_genes) ## use here bs_genes
 tandem <- find_tandem(output_files, bin_mat_tandem, bs_genes)
 
 ## load i-ADHore results from MCL input
-setwd("~/AG-Fernie/Thomas/Data/synteny/synteny_iadhore/output_mcl")
-output_files <- list.files()[grep(list.files(), pattern = "output_")]
+.path <- "~/AG-Fernie/Thomas/Data/synteny/synteny_iadhore/output_mcl"
+output_files <- list.files(.path)[grep(list.files(.path), pattern = "output_")]
 ## create binary matrix that will store if there exists a collinear or tandem
 ## relationship or not
 bin_mat_tandem_mcl <- bin_mat_mcl <- matrix(data = 0, nrow = length(bs_genes_all), 
@@ -109,7 +105,7 @@ bin_mat_mcl <- find_synteny(output_files, bin_mat_mcl, bs_genes_mcl) ## use here
 tandem_mcl <- find_tandem(output_files, bin_mat_tandem_mcl, bs_genes_mcl)
 
 ## MCScanX
-## function to find synteny by finding pks_genes in MSScanX output
+## function to find synteny by finding genes in MCScanX output
 find_synteny_mcscanx <- function(files, bin_mat, genes) {
     ## loop through files
     for (i in 1:length(files)) {
@@ -135,7 +131,7 @@ find_synteny_mcscanx <- function(files, bin_mat, genes) {
     return(bin_mat)
 }
 
-## function to find tandems by finding pks_genes in MCScanX output
+## function to find tandems by finding genes in MCScanX output
 find_tandem_mcscanx <- function(files, bin_mat, genes) {
     ## loop through files
     tandem_list <- list()
@@ -161,8 +157,9 @@ find_tandem_mcscanx <- function(files, bin_mat, genes) {
 } ## replaces .collineary by .tandem
 
 ## load MCScanX results from Orthofinder input
-setwd("~/AG-Fernie/Thomas/Data/synteny/synteny_MCScanX/MCScanX_gff")
-collinearity_files <- list.files()[grep(list.files(), pattern = "[.]collinearity")]
+.path <- "~/AG-Fernie/Thomas/Data/synteny/synteny_MCScanX/MCScanX_gff"
+collinearity_files <- list.files(.path)[
+    grep(list.files(.path), pattern = "[.]collinearity")]
 
 ## create binary matrix that will store if there exists a collinear or tandem
 ## relationship or not
@@ -175,8 +172,8 @@ tandem_mcscanx <- find_tandem_mcscanx(collinearity_files, bin_mat_tandem_mcscanx
 
 
 ## load MScanX results from MCL input
-setwd("~/AG-Fernie/Thomas/Data/synteny/synteny_MCScanX/MCScanX_gff_mcl")
-collinearity_files <- list.files()[grep(list.files(), pattern = "[.]collinearity")]
+.path <- "~/AG-Fernie/Thomas/Data/synteny/synteny_MCScanX/MCScanX_gff_mcl"
+collinearity_files <- list.files(.path)[grep(list.files(.path), pattern = "[.]collinearity")]
 
 ## create binary matrix that will store if there exists a collinear or tandem
 ## relationship or not
@@ -188,7 +185,6 @@ bin_mat_mcscanx_mcl  <- find_synteny_mcscanx(collinearity_files, bin_mat_mcscanx
 tandem_mcscanx_mcl <- find_tandem_mcscanx(collinearity_files, bin_mat_tandem_mcscanx_mcl, bs_genes_mcl)
 
 ## save and load tandem and bin_mat files
-setwd("~/AG-Fernie/Federico/BAHD_SCPL_synteny/")
 save(bin_mat, bin_mat_mcl, bin_mat_mcscanx, bin_mat_mcscanx_mcl, 
     file = "./synteny_bin_mat.RData")
 save(tandem, tandem_mcl, tandem_mcscanx, tandem_mcscanx_mcl, 
@@ -246,8 +242,8 @@ components_g_unique <- unique(components_g)
 
 ## check reliability of connection by checking number of neighbouring genes
 res <- vector("list", length(bs_genes_all))
-setwd("~/AG-Fernie/Thomas/Data/synteny/synteny_iadhore")
-gff_files <- list.files()
+.path <- "~/AG-Fernie/Thomas/Data/synteny/synteny_iadhore"
+gff_files <- list.files(.path)
 gff_files <- gff_files[grep(gff_files, pattern = "gff")]
 
 ## iterate through bs_genes_all
@@ -256,7 +252,8 @@ for(i in 1:length(bs_genes_all) ) {
     ## get chromosome of gene
     gene <- unlist(lapply(strsplit(
         bs_genes_all[i], split = paste(species, "_", sep = "")), "[", 2))
-    if (species == "quero") gene <- gsub(gene, pattern = "_P", replacement = "_T")
+    if (species == "quero") 
+        gene <- gsub(gene, pattern = "_P", replacement = "_T")
     gff <- read.table(gff_files[grep(gff_files, pattern = species)], 
         sep = "\t", stringsAsFactors = FALSE, quote = "")
     chr <- unique(gff[grep(gff[, 9], pattern = gene), 1])
@@ -280,15 +277,18 @@ for(i in 1:length(bs_genes_all) ) {
     ## load chromosome file lst and get position of gene in file
     res[[i]] <- list()
     if (!length(chr) == 0) {
-        lst <- read.table(paste("lst_files/", species, "/", chr, ".lst", sep = ""), 
+        lst <- read.table(
+            paste("lst_files/", species, "/", chr, ".lst", sep = ""), 
             stringsAsFactors = FALSE, quote="")
         lst <- unique(lst[, 1])
         genes_lst <- substring(lst, 1, nchar(lst)-1)
-        if (species == "quero") genes_lst <- gsub(genes_lst, pattern = "_P", replacement = "_T")
+        if (species == "quero") 
+            genes_lst <- gsub(genes_lst, pattern = "_P", replacement = "_T")
         position <- which(genes_lst == paste(species, gene, sep = "_"))
         end <- length(lst)
-        ## write the following information to the list res: start end position, name of chromosome
-        res[[i]][[1]] <- c(position-1, end-position)
+        ## write the following information to the list res: 
+        ## start end position, name of chromosome
+        res[[i]][[1]] <- c(position - 1, end - position)
         res[[i]][[2]] <- chr
     } else {
         res[[i]][[1]] <- NULL
@@ -296,17 +296,15 @@ for(i in 1:length(bs_genes_all) ) {
     }
     print(c(bs_genes_all[i], res[[i]][[1]], res[[i]][[2]]))
 }
-
 names(res) <- bs_genes_all
 
 ## save res to neighbours_on_chromosomes.RData
-setwd("~/AG-Fernie/Federico/BAHD_SCPL_synteny/")
 save(res, file = "./neighbours_on_chromosomes.RData")
 load("neighbours_on_chromosomes.RData")
 ## end check reliability
 
 ## some plots
-## calculate length of chromosome/scaffold where PKS gene is located on
+## calculate length of chromosome/scaffold where the gene is located on
 length_chr <- unlist(lapply(res, function(x) sum(x[[1]]) + 1)) 
 hist(log(length_chr))
 ## calculate minimum to end to chromosome/scaffold
@@ -320,14 +318,15 @@ for (i in 1:length(components_g_unique)) {
     chrs <- unlist(lapply(res[name_i], "[", 2))
 
     if (length(unique(chrs)) != 1) {print(i)} else { 
-        ## print i when genes are on different chr
+        ## print i when genes are on different chromosomes
         position <- lapply(res[name_i], "[", 1)
         
         ## get positions and calculate differences 
         position <- unlist(position)[c(TRUE, FALSE)] 
         position <- sort(position)
         position_diff <- numeric(length(position) -1)
-        for (j in 1:length(position_diff)) position_diff[j] <- position[j + 1] - position[j]
+        for (j in 1:length(position_diff)) 
+            position_diff[j] <- position[j + 1] - position[j]
         if (any(position_diff > 20)) print(i)
     }
 }
@@ -363,7 +362,7 @@ mat_type[which(bin_mat_mcscanx_mcl == 1)] <- paste(
 
 ## remove the final slash ("/")
 mat_type_vec <- lapply(as.vector(mat_type), 
-    function(x) paste(strsplit(x, split = "/")[[1]], collapse="/"))
+    function(x) paste(strsplit(x, split = "/")[[1]], collapse = "/"))
 mat_type_vec <- unlist(mat_type_vec)
 
 ## write back a to matrix
@@ -375,8 +374,10 @@ colnames(bin_mat_complete) <- rownames(bin_mat_complete) <- rownames(bin_mat)
 rownames(mat_type) <- colnames(mat_type) <- rownames(bin_mat)
 
 ## plot bin_mat_complete network
-g <- igraph::graph_from_adjacency_matrix(bin_mat_complete, diag=FALSE, weighted = TRUE)
-plot(g, vertex.label.cex=0.1, vertex.size=0.1, edge.width=1, edge.arrow.size=0.1)
+g <- igraph::graph_from_adjacency_matrix(bin_mat_complete, diag = FALSE, 
+    weighted = TRUE)
+plot(g, vertex.label.cex = 0.1, vertex.size = 0.1, edge.width = 1, 
+    edge.arrow.size = 0.1)
 
 ## rename tandem genes to pasted names
 name <- names(components_g) ## name of tandem genes
@@ -393,7 +394,8 @@ for (i in 1:length(name_comb_unique)) {
         function(x) paste(x, collapse = "/"))
     connection_sum <- paste(connection_sum, apply(mat_type[, name_i], 1, 
         function(x) paste(x, collapse = "/")), sep = "/")
-    connection_sum <- lapply(strsplit(unlist(connection_sum), split = "/"), unique)                    
+    connection_sum <- lapply(strsplit(unlist(connection_sum), split = "/"), 
+        unique)                    
     connection_sum <- lapply(connection_sum, function(x) x[x != ""])
     connection_sum <- unlist(lapply(connection_sum, length))
     
@@ -458,17 +460,14 @@ bin_mat_complete[which(
     mat_type %in% c( "iadhore_mcl/mcscanx", "iadhore/mcscanx_mcl"))] <- 0
 mat_type[which(
     mat_type %in% c("iadhore_mcl/mcscanx", "iadhore/mcscanx_mcl"))] <- ""
-
-
-setwd("~/AG-Fernie/Federico/BAHD_SCPL_synteny")
 save(bin_mat_complete, mat_type, 
     file = "BAHD_SCPL_bin_mat_complete_mat_type.RData")
 
 ## plot the bin_mat_complete network
-g <- graph_from_adjacency_matrix(bin_mat_complete, diag = FALSE, mode = "directed", weighted = TRUE)
+g <- graph_from_adjacency_matrix(bin_mat_complete, 
+    diag = FALSE, mode = "directed", weighted = TRUE)
 plot(g, vertex.label.cex = 0.1, vertex.size = 0.1, edge.width = 1, 
      edge.arrow.size = 0.1)
-
 
 ## remove the proteins that do not link to others
 inds_keep <- apply(bin_mat_complete, 1, sum) > 0
@@ -482,7 +481,7 @@ res_nlink <- lapply(1:length(res_nlink), function(x) res_nlink[[x]][[1]])
 res_nlink_sum <- lapply(res_nlink, sum)
 names(res_nlink_sum) <- rownames(bin_mat_complete)[!inds_keep]
 
-## add 1 since the pks_genes is not counted
+## add 1 since the genes is not counted
 res_nlink_sum <- unlist(res_nlink_sum) + 1 
 
 ## create a vector that stores the colour depending on how many genes there 
@@ -495,8 +494,8 @@ reliability[names(res_nlink_sum[tmp >= 15 & tmp < 25])] <- "yellow"
 reliability[names(res_nlink_sum[tmp >= 25])] <- "green"
 
 ## plot network that contains features that do not link to other
-net <- graph_from_adjacency_matrix(
-    bin_mat_complete[!inds_keep, !inds_keep], mode = "directed", diag = FALSE, weighted = TRUE)
+net <- graph_from_adjacency_matrix(bin_mat_complete[!inds_keep, !inds_keep], 
+    mode = "directed", diag = FALSE, weighted = TRUE)
 plot(net, vertex.label.cex = 0.3, vertex.size = 5, 
     vertex.color = reliability[!inds_keep],edge.arrow.size = 0.1)
 
@@ -515,7 +514,7 @@ for (i in 1:length(components_g_unique)) {
     names(res_link_sum)[inds[1]] <- new_name
     res_link_sum <- res_link_sum[ -inds[ 2:length(inds) ]]
 }
-## add 1 since the pks_genes is not counted
+## add 1 since the genes is not counted
 res_link_sum <- unlist(res_link_sum) + 1 
 
 
@@ -533,22 +532,30 @@ df <- unlist(lapply(strsplit(names(res_nlink_sum), split = "_"), "[", 1))
 df <- sort(table(df))
 df <- data.frame(species = names(df), number = as.vector(df))
 df$species <- factor(df$species, levels=df$species[order(df$number)])
-g <- ggplot(df) + geom_bar(aes(x = species, y = number), stat = "identity") + 
-    ylim(0,575) + theme_bw() + 
+g <- ggplot(df) + 
+    geom_bar(aes(x = species, y = number), stat = "identity") + 
+    ylim(0,575) + 
+    theme_bw() + 
     theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 90, hjust = 1))
 ggsave(g, 
     file = "./figure_synteny_network_quality/synteny_network_quality_notlinking_species_hist.pdf")
 
 g <- ggplot(data.frame(value = unlist(res_link_sum)), aes(x = value)) + 
-    ylim(-100, 1000) + xlim(0, 15000) + theme_bw() + geom_histogram(binwidth = 100) + 
+    ylim(-100, 1000) + 
+    xlim(0, 15000) + 
+    theme_bw() + 
+    geom_histogram(binwidth = 100) + 
     theme(panel.grid = element_blank())
 ggsave(g, file = "./figure_synteny_network_quality/sum_genes_scaffold_linking_hist.pdf")
 
 g <- ggplot(data.frame(value = unlist(res_nlink_sum)), aes(x = value)) + 
-    ylim(-1,1000) + xlim(0, 15000) + theme_bw() + geom_histogram(binwidth = 100) + 
+    ylim(-1,1000) + 
+    xlim(0, 15000) + 
+    theme_bw() + 
+    geom_histogram(binwidth = 100) + 
     theme(panel.grid = element_blank())
 ggsave(g, 
-       file = "./figure_synteny_network_quality/sum_genes_scaffold_notlinking_hist.pdf")
+    file = "./figure_synteny_network_quality/sum_genes_scaffold_notlinking_hist.pdf")
 
 ## set colour according to the number of neightbour genes
 tmp <- unlist(res_link_sum)
@@ -565,15 +572,19 @@ plot(net, vertex.label.cex = 0.1, vertex.size = 5,
      vertex.color = reliability[inds_keep], edge.arrow.size = 0.1)
 
 ## plot type of links 
-df <- data.frame(names = names(unlist(sort(table(mat_type_cut[lower.tri(mat_type_cut)])[-1]))), 
+df <- data.frame(
+    names = names(unlist(sort(table(mat_type_cut[lower.tri(mat_type_cut)])[-1]))), 
     value = as.vector(sort(table(mat_type_cut[lower.tri(mat_type_cut)])[-1])))
 df$names <- factor(df$names, levels = df$names[order(df$value)])
-g <- ggplot(df) + geom_bar(aes(x = names, y = value), stat = "identity") + 
-    theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ylim(0, 120000)
+g <- ggplot(df) + 
+    geom_bar(aes(x = names, y = value), stat = "identity") + 
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    ylim(0, 120000)
 ggsave(g, file = "./figure_synteny_network_quality/type_link_synteny.pdf")
 
 ## export the network
-setwd("~/AG-Fernie/Federico/")
-save(bin_mat_complete, bin_mat_complete_cut, mat_type_cut, file = "bin_mat_complete_cut_tandemgenes.RData")
+save(bin_mat_complete, bin_mat_complete_cut, mat_type_cut, 
+    file = "bin_mat_complete_cut_tandemgenes.RData")
 load("bin_mat_complete_cut_tandemgenes.RData")
 
