@@ -3,7 +3,7 @@ setwd("~/AG-Fernie/Thomas/Data/synteny")
 
 library("igraph")
 
-## get TPS genes from output of Orthofinder or MCL
+## get BAHD and SCPL genes from output of Orthofinder or MCL
 genes_table <- read.table("./Results_Nov05/family_orthogroups.txt", sep = "\t", 
     header = FALSE, stringsAsFactors = FALSE)
 bs_genes <- sort(genes_table[genes_table[, 2] %in% ## for OrthoFinder 
@@ -18,7 +18,7 @@ bs_genes_mcl <- sort(genes_table_mcl[genes_table_mcl[, 2] %in% ## for mcl
     c("group_414", "group_298", "group_1084", "group_179", "group_56", ## BAHD-ATs
         "group_50"), 1]) ## SCP-SCPL-ATs
 
-## vector with all TPS genes identified by orthofinder and mcl, use this to 
+## vector with all BAHD and SCPL genes identified by orthofinder and mcl, use this to 
 ## create the bin_mat_... matrices
 bs_genes_all <- sort(unique(c(bs_genes, bs_genes_mcl)))
 
