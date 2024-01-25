@@ -1,6 +1,6 @@
-# BAHD_SCPL_synteny
+# Analysis of syntenic relationships of BAHD and SCPL-containing genomic regions using a network approach
 
-Scripts to create the synteny network of BAHD and SCPL genes. 
+Scripts to create the synteny network of BAHD- and SCPL-containing genomic regions. 
 
 - `01_network_construction_BAHD_SCPL.R`: focuses on integrating and 
   visualizing synteny information from multiple sources and conducts quality 
