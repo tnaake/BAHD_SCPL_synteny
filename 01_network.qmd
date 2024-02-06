@@ -54,31 +54,26 @@ mat_type_cut <- mat_type_cut[names_net, names_net]
 dim(bin_mat_cut)
 ```
 
+Manually remove some of the edges due to misclassification of MCL/Orthofinder. Those edges are all of type "mcscanx", i.e. they are derived from MCScanX software using the Orthofinder input. The corresonding nodes are all classified as BAHD.
 
-Manually remove some of the edges due to misclassification of MCL/Orthofinder.
-Those edges are all of type "mcscanx", i.e. they are derived from MCScanX 
-software using the Orthofinder input. The corresonding nodes are all classified 
-as BAHD.
+-   n381, "aquco_Aqcoe4G242100.1.p", OG0000212, group_298;
+-   n388, "aquco_Aqcoe4G257500.1.p", OG0000161, group_56;
+-   n477, "aradu_XP_015954543.1", OG0000161, group_56;
+-   n541, "araip_XP_016187645.1", OG0000161, group_56;
+-   n2059, "cansa_XP_030478657.1/cansa_XP_030478658.1/cansa_XP_030509927.1/cansa_XP_030511175.1", OG0000161/OG0000161/OG0000161/OG0000161, group_56/group_56/group_56/group_56;
+-   n2689, "citcl_XP_006427659.1", OG0000161, group_56;
+-   n2915, "citsi_orange1.1t02793.1", OG0000161, group_56;
+-   n3799, "glyma_Glyma.15G241300.1.p", OG0000161, group_56;
+-   n7411, "phavu_ESW28881", OG0000161, group_56;
+-   n8142, "selmo_Smo33608\|PACid_15401917", OG0000161, group_298;
+-   n8155, "selmo_Smo407588\|PACid_15419821", OG0000161, group_298;
+-   n8177, "selmo_Smo445158\|PACid_15417296", OG0000212, group_56;
+-   n8178, "selmo_Smo445159\|PACid_15417297", OG0000161, group_298;
+-   n8179, "selmo_Smo445441\|PACid_15419570", OG0000161, group_298;
+-   n8180, "selmo_Smo64454\|PACid_15402615", OG0000161, group_298;
+-   n8999, "thepa_Tp5g13300", OG0000161, group_56.
 
- - n381, "aquco_Aqcoe4G242100.1.p", OG0000212, group_298;
- - n388, "aquco_Aqcoe4G257500.1.p", OG0000161, group_56;
- - n477, "aradu_XP_015954543.1", OG0000161, group_56;
- - n541, "araip_XP_016187645.1", OG0000161, group_56;
- - n2059, "cansa_XP_030478657.1/cansa_XP_030478658.1/cansa_XP_030509927.1/cansa_XP_030511175.1", OG0000161/OG0000161/OG0000161/OG0000161, group_56/group_56/group_56/group_56;
- - n2689, "citcl_XP_006427659.1", OG0000161, group_56;
- - n2915, "citsi_orange1.1t02793.1", OG0000161, group_56;
- - n3799, "glyma_Glyma.15G241300.1.p", OG0000161, group_56;
- - n7411, "phavu_ESW28881", OG0000161, group_56;
- - n8142, "selmo_Smo33608|PACid_15401917", OG0000161, group_298;
- - n8155, "selmo_Smo407588|PACid_15419821", OG0000161, group_298;
- - n8177, "selmo_Smo445158|PACid_15417296", OG0000212, group_56;
- - n8178, "selmo_Smo445159|PACid_15417297", OG0000161, group_298;
- - n8179, "selmo_Smo445441|PACid_15419570", OG0000161, group_298;
- - n8180, "selmo_Smo64454|PACid_15402615", OG0000161, group_298;
- - n8999, "thepa_Tp5g13300", OG0000161, group_56.
- 
- The MCL group "group_56" is not a defined BAHD group.
-
+The MCL group "group_56" is not a defined BAHD group.
 
 ```{r}
 ## define the nodes according to the "G default node.xlsx" file
@@ -196,7 +191,6 @@ bin_mat_cut[n8142, n8999] <- 0
 bin_mat_cut[n8999, n8142] <- 0
 ```
 
-
 Create now a network from the `bin_mat_cut` adjacency matrix.
 
 ```{r}
@@ -205,27 +199,26 @@ net_cut <- graph_from_adjacency_matrix(bin_mat_cut, mode = "undirected",
     diag = FALSE, weighted = TRUE)
 ```
 
-How many network components do we have now after manual removal of the false 
-edges?
+How many network components do we have now after manual removal of the false edges?
 
 ```{r}
 length(decompose(net_cut))
 ```
 
-## Create membership information 
+## Create membership information
 
 After removal, recalculate the communities using the following algorithms:
 
- - fastgreedy.community (fc),
- - walktrap.community (wc),
- - leading.eigenvector.community (le),
- - label.propagation.community (lp),
- - multilevel.community (ml),
- - infomap.community (im)
-
+-   fastgreedy.community (fc),
+-   walktrap.community (wc),
+-   leading.eigenvector.community (le),
+-   label.propagation.community (lp),
+-   multilevel.community (ml),
+-   infomap.community (im)
 
 Create a `membership_community` object to store the results in.
-```{r community_detection, cache = TRUE}
+
+```{r community_detection}
 ## https://stackoverflow.com/questions/9471906/what-are-the-differences-between-community-detection-algorithms-in-igraph
 fc <- fastgreedy.community(net_cut, modularity = TRUE, 
     weights = E(net_cut)$weight)
@@ -254,10 +247,9 @@ membership_community <- data.frame(X = names(membership(fc)), fc = membership(fc
     lp = membership(lp), ml = membership(ml), im = membership(im))
 ```
 
-Add to the `membership_community` object information on the orthogroup and MCL
-membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
+Add to the `membership_community` object information on the orthogroup and MCL membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
 
-```{r add_information_on_orthogroup_mcl, cache = TRUE}
+```{r add_information_on_orthogroup_mcl}
 ## add empty columns
 membership_community$og <- "unknown"
 membership_community$mcl <- "unknown"
@@ -341,12 +333,12 @@ write.table(membership_community, file = "membership_community_gene_cluster_adde
     quote = FALSE, row.names = FALSE, sep = "\t")
 ```
 
-
 # Calculate topological parameters
 
 Iterate now through the orthogroups and obtain the networks to calculate network topology parameters.
 
 Define helper functions.
+
 ```{r fcts_topological_parameters}
 ## calculate topological parameters
 calculate_topological_parameters <- function(.component) {
@@ -624,17 +616,55 @@ get_topology_for_components <- function(og = og_bahd) {
 ```
 
 Apply the function on orthogroups of BAHD and SCPL genes
+
 ```{r calculate_topology_parameters}
 ## apply the function on orthogroups of BAHD and SCPL genes
 topology_bahd <- get_topology_for_components(og = og_bahd)
 topology_scpl <- get_topology_for_components(og = og_scpl)
+
+## write the network_topology_components to the community_member file
+membership_community$topology_component <- "undefined"
+for (i in seq_len(length(og_bahd))) {
+    genes <- membership_community[membership_community$og == og_bahd[i], "X"]
+    g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], 
+        mode = "undirected", diag = FALSE, weighted = TRUE)
+    .components <- decompose(g, min.vertices = 3)
+        for (j in seq_along(.components)) {
+            .components_j <- .components[[j]]
+            genes_j <- V(.components_j) |>
+                names()
+            inds <- which(membership_community$X %in% genes_j)
+            membership_community$topology_component[inds] <- paste(
+                membership_community$topology_component[inds], 
+                paste("BAHD", og_bahd[i], j, sep = "_"), sep = "/"
+            )
+        }
+}
+for (i in seq_len(length(og_scpl))) {
+    genes <- membership_community[membership_community$og == og_scpl[i], "X"]
+    g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], 
+        mode = "undirected", diag = FALSE, weighted = TRUE)
+    .components <- decompose(g, min.vertices = 3)
+        for (j in seq_along(.components)) {
+            .components_j <- .components[[j]]
+            genes_j <- V(.components_j) |>
+                names()
+            inds <- which(membership_community$X %in% genes_j)
+            membership_community$topology_component[inds] <- paste(
+                membership_community$topology_component[inds], 
+                paste("SCPL", og_scpl[i], j, sep = "_"), sep = "/"
+            )
+        }
+}
+membership_community$topology_component <- stringr::str_remove(
+    membership_community$topology_component, pattern = "undefined/")
 
 ## add information on BAHD and SCPL genes
 topology_bahd[[1]]$family <- "BAHD"
 topology_scpl[[1]]$family <- "SCPL"
 ```
 
-## Plotting 
+## Plotting
 
 Do the actual plotting.
 
@@ -1126,8 +1156,8 @@ ttest_shortest_paths_max <- tp$ttest
 
 ### Multiple testing correction via FDR
 
-Combine first the test results. Then adjust via FDR using the Benjamini-Hochberg
-method the raw p-values using the number of models.
+Combine first the test results. Then adjust via FDR using the Benjamini-Hochberg method the raw p-values using the number of models.
+
 ```{r multiple_testing_correction}
 ttest_df <- rbind(
     ttest_average_path_length,
@@ -1172,8 +1202,8 @@ ttest_df$intercept_p_adj <- p.adjust(ttest_df$intercept_p, method = "BH")
 ttest_df$nn_p_adj <- p.adjust(ttest_df$nn_p, method = "BH")
 ```
 
-Return the table with all the information (t-values, df, raw p-values, adjusted
-p-values) for the intercept and the `number_nodes` parameter (gradient).
+Return the table with all the information (t-values, df, raw p-values, adjusted p-values) for the intercept and the `number_nodes` parameter (gradient).
+
 ```{r}
 ## return the final table
 rmarkdown::paged_table(ttest_df)
@@ -1185,17 +1215,13 @@ What are the parameters that show differences in the intercept parameter?
 rmarkdown::paged_table(ttest_df[ttest_df$intercept_p_adj <= 0.05, ])
 ```
 
-What are the parameters that show differences in the 
-`number_nodes` parameter?
+What are the parameters that show differences in the `number_nodes` parameter?
 
 ```{r}
 rmarkdown::paged_table(ttest_df[ttest_df$nn_p_adj <= 0.05, ])
 ```
 
-
-
-What are the parameters that both show differences in the intercept and 
-`number_nodes` parameter?
+What are the parameters that both show differences in the intercept and `number_nodes` parameter?
 
 ```{r}
 rmarkdown::paged_table(ttest_df[ttest_df$intercept_p_adj <= 0.05 & ttest_df$nn_p_adj <= 0.05, ])
@@ -1206,6 +1232,7 @@ rmarkdown::paged_table(ttest_df[ttest_df$intercept_p_adj <= 0.05 & ttest_df$nn_p
 Find all complete subgraphs in the input graph.
 
 Define functions.
+
 ```{r fcts_cliques}
 #' @name find_largest_non_overlapping_cliques
 #' 
@@ -1311,25 +1338,23 @@ greedy_clique <- function(g, n_rep = 100) {
 }
 ```
 
-Run the greedy clique determination (each with 100 repetitions) on two different inputs 
+Run the greedy clique determination (each with 100 repetitions) on two different inputs
 
- - using the network derived from MCL groups and Orthofinder orthogroups,
- - using the network derived from Orthofinder orthogroups,
+-   using the network derived from MCL groups and Orthofinder orthogroups,
+-   using the network derived from Orthofinder orthogroups,
 
-## MCL group and Orthofinder orthogroup input 
+## MCL group and Orthofinder orthogroup input
 
-First step is to transform the weighted matrix into a binary matrix. All 
-weights `>= 0.25` will have a binary weight of 1. 
+First step is to transform the weighted matrix into a binary matrix. All weights `>= 0.25` will have a binary weight of 1.
 
 ```{r}
 bin_mat_clique_og_mcl <- bin_mat_cut
 bin_mat_clique_og_mcl[bin_mat_clique_og_mcl >= .25] <- 1
 ```
 
-Apply now the function on the graph (for MCL group and Orthofinder orthogroup 
-input).
+Apply now the function on the graph (for MCL group and Orthofinder orthogroup input).
 
-```{r clique_og_mcl, cache = TRUE}
+```{r clique_og_mcl}
 g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og_mcl, mode = "undirected", 
     weighted = NULL, diag = FALSE)
 cliques_greedy <- greedy_clique(g, n_rep = 100)
@@ -1352,13 +1377,11 @@ for (component_i in seq_along(cliques_greedy)) {
 }
 ```
 
-## Only Orthofinder orthogroup input 
+## Only Orthofinder orthogroup input
 
-First step is to transform the weighted matrix into a binary matrix. 
-Set all edges that do not contain information from Orthofinder to 0, in other words
-set the edges that are only derived from the MCL input to 0. 
+First step is to transform the weighted matrix into a binary matrix. Set all edges that do not contain information from Orthofinder to 0, in other words set the edges that are only derived from the MCL input to 0.
 
-Then set all weights `>= 0.25` to a binary weight of 1. 
+Then set all weights `>= 0.25` to a binary weight of 1.
 
 ```{r}
 bin_mat_clique_og <- bin_mat_cut
@@ -1372,7 +1395,7 @@ bin_mat_clique_og[bin_mat_clique_og >= .25] <- 1
 
 Apply now the function on the graph (for Orthofinder orthogroup input only).
 
-```{r clique_og, cache = TRUE}
+```{r clique_og}
 g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og, mode = "undirected", 
     weighted = NULL, diag = FALSE)
 cliques_greedy <- greedy_clique(g, n_rep = 100)
@@ -1410,12 +1433,11 @@ Export also the network file derived from the adjacency matrix `bin_mat_cut`.
 write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", format = "graphml")
 ```
 
-
 # Plot the network
 
 ## fastgreedy.community
 
-```{r plot_fc, cache = TRUE}
+```{r plot_fc}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1433,7 +1455,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## walktrap.community
 
-```{r plot_wc, cache = TRUE}
+```{r plot_wc}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1451,7 +1473,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## leading.eigenvector.community
 
-```{r plot_le, cache = TRUE}
+```{r plot_le}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1469,7 +1491,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## label.propagation.community
 
-```{r plot_lp, cache = TRUE}
+```{r plot_lp}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1487,7 +1509,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## multilevel.community
 
-```{r plot_ml, cache = TRUE}
+```{r plot_ml}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1505,7 +1527,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## infomap.community
 
-```{r plot_im, cache = TRUE}
+```{r plot_im}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1522,7 +1544,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## og
 
-```{r plot_og, cache = TRUE}
+```{r plot_og}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1542,9 +1564,9 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## mcl 
+## mcl
 
-```{r plot_mcl, cache = TRUE}
+```{r plot_mcl}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1563,9 +1585,9 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## component_og_mcl 
+## component_og_mcl
 
-```{r plot_component_og_mcl, cache = TRUE}
+```{r plot_component_og_mcl}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1580,4 +1602,3 @@ if (all(names(V(net_cut)) == membership_community$X)) {
     }
 }
 ```
-
