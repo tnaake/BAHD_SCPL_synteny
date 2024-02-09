@@ -209,26 +209,26 @@ length(decompose(net_cut))
 
 After removal, recalculate the communities using the following algorithms:
 
--   fastgreedy.community (fc),
--   walktrap.community (wc),
--   leading.eigenvector.community (le),
--   label.propagation.community (lp),
--   multilevel.community (ml),
--   infomap.community (im)
+-   cluster_fast_greedy (fc),
+-   cluster_walktrap (wc),
+-   cluster_leading_eigen (le),
+-   cluster_label_prop (lp),
+-   cluster_louvain (ml),
+-   cluster_infomap (im)
 
 Create a `membership_community` object to store the results in.
 
 ```{r community_detection}
 ## https://stackoverflow.com/questions/9471906/what-are-the-differences-between-community-detection-algorithms-in-igraph
-fc <- fastgreedy.community(net_cut, modularity = TRUE, 
+fc <- cluster_fast_greedy(net_cut, modularity = TRUE, 
     weights = E(net_cut)$weight)
-wc <- walktrap.community(net_cut, modularity = TRUE, steps = 15, 
+wc <- cluster_walktrap(net_cut, modularity = TRUE, steps = 15, 
     weights = E(net_cut)$weight)
-le <- leading.eigenvector.community(net_cut, steps = 15, 
+le <- cluster_leading_eigen(net_cut, steps = 15, 
     weights = E(net_cut)$weight)
-lp <- label.propagation.community(net_cut, weights = E(net_cut)$weight)
-ml <- multilevel.community(net_cut, weights = E(net_cut)$weight)
-im <- infomap.community(net_cut, e.weights = E(net_cut)$weight, 
+lp <- cluster_label_prop(net_cut, weights = E(net_cut)$weight)
+ml <- cluster_louvain(net_cut, weights = E(net_cut)$weight)
+im <- cluster_infomap(net_cut, e.weights = E(net_cut)$weight, 
     nb.trials = 100, modularity = TRUE)
 
 ## combine all cluster detection results to a matrix 
@@ -348,7 +348,7 @@ calculate_topological_parameters <- function(.component) {
         weights = E(.component), directed = FALSE, mode = "all")
     
     ## average path length
-    .average_path_length <- average.path.length(.component, 
+    .mean_distance <- mean_distance(.component, 
         weights = E(.component), directed = FALSE)
     
     ## betweenness
@@ -485,14 +485,14 @@ calculate_topological_parameters <- function(.component) {
     .strength_max <- .strength |>
         max()
         
-    ## shortest path
-    .shortest_paths <- shortest.paths(.component, mode = "all", 
+    ## shortest path/distance
+    .distances <- distances(.component, mode = "all", 
         weights = E(.component))
-    .shortest_paths_min <- .shortest_paths |>
+    .distances_min <- .distances |>
         min()
-    .shortest_paths_median <- .shortest_paths |>
+    .distances_median <- .distances |>
         median()
-    .shortest_paths_max <- .shortest_paths |>
+    .distances_max <- .distances |>
         max()
         
     ## create data.frame to store resutls and to return
@@ -501,7 +501,7 @@ calculate_topological_parameters <- function(.component) {
         average_local_efficiency = .average_local_efficiency,
     
         ## average path length
-        average_path_length = .average_path_length,
+        mean_distance = .mean_distance,
         
         ## betweenness
         betweenness_normalized_min = .betweenness_normalized_min,
@@ -575,10 +575,10 @@ calculate_topological_parameters <- function(.component) {
         strength_median = .strength_median,
         strength_max = .strength_max,
             
-        ## shortest path
-        shortest_paths_min = .shortest_paths_min,
-        shortest_paths_median = .shortest_paths_median,
-        shortest_paths_max = .shortest_paths_max
+        ## shortest path/distance
+        distances_min = .distances_min,
+        distances_median = .distances_median,
+        distances_max = .distances_max
     )
 }
 
@@ -593,7 +593,7 @@ get_topology_for_components <- function(og = og_bahd) {
         genes <- membership_community[membership_community$og == og[i], "X"]
         g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], 
             mode = "undirected", diag = FALSE, weighted = TRUE)
-        .components <- decompose(g, min.vertices = 3)
+        .components <- decompose(g, min.vertices = 10)
     
         ## calculate topological parameters, add information on the component, and
         ## combine into one data.frame
@@ -756,6 +756,38 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         ttest_intercept <- t.test(bahd_coefs_intercept, scpl_coefs_intercept)
         ttest_nn <- t.test(bahd_coefs_nn, scpl_coefs_nn)
         
+        ## get the empirical model coefficients
+        ## bahd
+        bahd_coef_empirical <- lapply(1, function(i) {
+            .model <- lm(bahd_data[[plot]] ~ number_nodes, data = bahd_data)
+            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+        })
+        bahd_coefs_intercept <- lapply(bahd_coefs, "[", 1) |>
+            unlist()
+        bahd_coefs_nn <- lapply(bahd_coefs, "[", 2) |> 
+            unlist()
+        
+        ## scpl
+        scpl_coefs <- lapply(1, function(i) {
+            .model <- lm(scpl_data[[plot]] ~ number_nodes, data = scpl_data)
+            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+        })
+        scpl_coefs_intercept <- lapply(scpl_coefs, "[", 1) |>
+            unlist()
+        scpl_coefs_nn <- lapply(scpl_coefs, "[", 2) |> 
+            unlist()
+        
+        
+        
+         topology_l |>
+        ggplot(aes(x = number_nodes, y = .data[[plot]], color = family)) +
+            geom_point() +
+            suppressWarnings(ggplot2::geom_point(ggplot2::aes(text = component)))
+    if (.model)
+        gg <- gg +
+            geom_smooth(method = method, se = FALSE, alpha = 0.02)
+        
+        
         df_ttest <- data.frame(intercept_t = ttest_intercept$statistic, 
             intercept_df = ttest_intercept$parameter, 
             intercept_p = ttest_intercept$p.value,
@@ -783,16 +815,16 @@ tp$scatter_plotly
 # tp$ttest
 ```
 
-### average_path_length
+### mean_distance
 
-```{r average_path_length, warning=FALSE, message=FALSE}
-## average_path_length
-tp <- plot_topology_parameter(plot = "average_path_length", log10_x = TRUE, log10_y = TRUE,
+```{r mean_distance, warning=FALSE, message=FALSE}
+## mean_distance
+tp <- plot_topology_parameter(plot = "mean_distance", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
-ttest_average_path_length <- tp$ttest
+ttest_mean_distance <- tp$ttest
 ```
 
 ### betweenness_normalized
@@ -1131,27 +1163,27 @@ tp$bootstrap
 ttest_strength_max <- tp$ttest
 ```
 
-### shortest_paths
+### distances
 
-```{r shortest_paths, warning=FALSE, message=FALSE}
-tp <- plot_topology_parameter(plot = "shortest_paths_min", log10_x = FALSE, log10_y = F,
+```{r distances, warning=FALSE, message=FALSE}
+tp <- plot_topology_parameter(plot = "distances_min", log10_x = FALSE, log10_y = F,
     offset_x = 0, offset_y = 0, .model = FALSE)
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
-tp <- plot_topology_parameter(plot = "shortest_paths_median", log10_x = TRUE, log10_y = TRUE,
+tp <- plot_topology_parameter(plot = "distances_median", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
-ttest_shortest_paths_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "shortest_paths_max", log10_x = TRUE, log10_y = TRUE,
+ttest_distances_median <- tp$ttest
+tp <- plot_topology_parameter(plot = "distances_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
-ttest_shortest_paths_max <- tp$ttest
+ttest_distances_max <- tp$ttest
 ```
 
 ### Multiple testing correction via FDR
@@ -1160,7 +1192,7 @@ Combine first the test results. Then adjust via FDR using the Benjamini-Hochberg
 
 ```{r multiple_testing_correction}
 ttest_df <- rbind(
-    ttest_average_path_length,
+    ttest_mean_distance,
     ttest_betweenness_notnormalized_max,
     ttest_closeness_normalized_min,
     ttest_closeness_normalized_median,
@@ -1196,8 +1228,8 @@ ttest_df <- rbind(
     ttest_strength_min,
     ttest_strength_median,
     ttest_strength_max,
-    ttest_shortest_paths_median,
-    ttest_shortest_paths_max)
+    ttest_distances_median,
+    ttest_distances_max)
 ttest_df$intercept_p_adj <- p.adjust(ttest_df$intercept_p, method = "BH")
 ttest_df$nn_p_adj <- p.adjust(ttest_df$nn_p, method = "BH")
 ```
@@ -1207,6 +1239,8 @@ Return the table with all the information (t-values, df, raw p-values, adjusted 
 ```{r}
 ## return the final table
 rmarkdown::paged_table(ttest_df)
+write.table(ttest_df, file = "linear_model_parameter_ttest_values.txt", 
+    sep = "\t", dec = ".")
 ```
 
 What are the parameters that show differences in the intercept parameter?
@@ -1435,7 +1469,7 @@ write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", fo
 
 # Plot the network
 
-## fastgreedy.community
+## cluster_fast_greedy
 
 ```{r plot_fc}
 if (all(names(V(net_cut)) == membership_community$X)) {
@@ -1453,7 +1487,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## walktrap.community
+## cluster_walktrap
 
 ```{r plot_wc}
 if (all(names(V(net_cut)) == membership_community$X)) {
@@ -1471,7 +1505,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## leading.eigenvector.community
+## cluster_leading_eigen
 
 ```{r plot_le}
 if (all(names(V(net_cut)) == membership_community$X)) {
@@ -1489,7 +1523,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## label.propagation.community
+## cluster_label_prop
 
 ```{r plot_lp}
 if (all(names(V(net_cut)) == membership_community$X)) {
@@ -1507,7 +1541,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## multilevel.community
+## cluster_louvain
 
 ```{r plot_ml}
 if (all(names(V(net_cut)) == membership_community$X)) {
@@ -1525,7 +1559,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 }
 ```
 
-## infomap.community
+## cluster_infomap
 
 ```{r plot_im}
 if (all(names(V(net_cut)) == membership_community$X)) {
