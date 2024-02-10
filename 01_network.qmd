@@ -593,7 +593,7 @@ get_topology_for_components <- function(og = og_bahd) {
         genes <- membership_community[membership_community$og == og[i], "X"]
         g <- graph_from_adjacency_matrix(bin_mat_cut[genes, genes], 
             mode = "undirected", diag = FALSE, weighted = TRUE)
-        .components <- decompose(g, min.vertices = 10)
+        .components <- decompose(g, min.vertices = 11)
     
         ## calculate topological parameters, add information on the component, and
         ## combine into one data.frame
@@ -705,6 +705,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
             labels = function(x) format_format() (round(10^x - offset_y, digits = .digits_y)))
 
     gg_scatter <- gg +
+        ggplot2::scale_x_continuous(breaks = c(100, 250, 500, 750, 1000, 1250)) +
         xlab("number of nodes per component") + ylab(plot) +
         ggtitle(plot) +
         labs(color = "gene family") +
@@ -762,33 +763,27 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
             .model <- lm(bahd_data[[plot]] ~ number_nodes, data = bahd_data)
             list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
         })
-        bahd_coefs_intercept <- lapply(bahd_coefs, "[", 1) |>
+        bahd_coef_intercept <- lapply(bahd_coef_empirical, "[", 1) |>
             unlist()
-        bahd_coefs_nn <- lapply(bahd_coefs, "[", 2) |> 
+        bahd_coef_nn <- lapply(bahd_coef_empirical, "[", 2) |> 
             unlist()
         
         ## scpl
-        scpl_coefs <- lapply(1, function(i) {
+        scpl_coefs_empirical <- lapply(1, function(i) {
             .model <- lm(scpl_data[[plot]] ~ number_nodes, data = scpl_data)
             list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
         })
-        scpl_coefs_intercept <- lapply(scpl_coefs, "[", 1) |>
+        scpl_coef_intercept <- lapply(scpl_coefs_empirical, "[", 1) |>
             unlist()
-        scpl_coefs_nn <- lapply(scpl_coefs, "[", 2) |> 
+        scpl_coef_nn <- lapply(scpl_coefs_empirical, "[", 2) |> 
             unlist()
-        
-        
-        
-         topology_l |>
-        ggplot(aes(x = number_nodes, y = .data[[plot]], color = family)) +
-            geom_point() +
-            suppressWarnings(ggplot2::geom_point(ggplot2::aes(text = component)))
-    if (.model)
-        gg <- gg +
-            geom_smooth(method = method, se = FALSE, alpha = 0.02)
-        
-        
-        df_ttest <- data.frame(intercept_t = ttest_intercept$statistic, 
+
+        df_ttest <- data.frame(
+            BAHD_intercept_empirical = bahd_coef_intercept,
+            BAHD_nn_empirical = bahd_coef_nn,
+            SCPL_intercept_empirical = scpl_coef_intercept,
+            SCPL_nn_empirical = scpl_coef_nn,
+            intercept_t = ttest_intercept$statistic, 
             intercept_df = ttest_intercept$parameter, 
             intercept_p = ttest_intercept$p.value,
             nn_t = ttest_nn$statistic, nn_df = ttest_nn$parameter, 
@@ -1388,7 +1383,7 @@ bin_mat_clique_og_mcl[bin_mat_clique_og_mcl >= .25] <- 1
 
 Apply now the function on the graph (for MCL group and Orthofinder orthogroup input).
 
-```{r clique_og_mcl}
+```{r clique_og_mcl, cache = TRUE}
 g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og_mcl, mode = "undirected", 
     weighted = NULL, diag = FALSE)
 cliques_greedy <- greedy_clique(g, n_rep = 100)
@@ -1471,7 +1466,7 @@ write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", fo
 
 ## cluster_fast_greedy
 
-```{r plot_fc}
+```{r plot_fc, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1489,7 +1484,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## cluster_walktrap
 
-```{r plot_wc}
+```{r plot_wc, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1507,7 +1502,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## cluster_leading_eigen
 
-```{r plot_le}
+```{r plot_le, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1525,7 +1520,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## cluster_label_prop
 
-```{r plot_lp}
+```{r plot_lp, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1543,7 +1538,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## cluster_louvain
 
-```{r plot_ml}
+```{r plot_ml, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1561,7 +1556,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## cluster_infomap
 
-```{r plot_im}
+```{r plot_im, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1578,7 +1573,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## og
 
-```{r plot_og}
+```{r plot_og, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1600,7 +1595,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## mcl
 
-```{r plot_mcl}
+```{r plot_mcl, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
@@ -1621,7 +1616,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
 
 ## component_og_mcl
 
-```{r plot_component_og_mcl}
+```{r plot_component_og_mcl, cache=TRUE}
 if (all(names(V(net_cut)) == membership_community$X)) {
     .components <- decompose(net_cut)
     
