@@ -670,8 +670,10 @@ Do the actual plotting.
 
 ```{r fcts_plot_topology_parameters}
 plot_topology_parameter <- function(.topology_bahd = topology_bahd, 
-    .topology_scpl = topology_scpl, plot = "degree", log10_x = FALSE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = TRUE, method = "lm", .digits_x = 0, .digits_y = 2) {
+    .topology_scpl = topology_scpl, plot = "degree", log10_x = FALSE, 
+    log10_y = FALSE, offset_x = 0, offset_y = 0, .model = TRUE, method = "lm",
+    .digits_x = 0, .digits_y = 2, 
+    custom_ticks_x = c(50, 100, 250, 500, 750, 1250), custom_ticks_y = c(0, 1)) {
     
     ## row bind topology_bahd and topology_scpl
     bahd_data <- .topology_bahd[[1]]
@@ -697,15 +699,27 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         gg <- gg +
             geom_smooth(method = method, se = FALSE, alpha = 0.02)
     
-    if (log10_x)
+    if (log10_x) {
+        gg <- gg + xlim(log10(49), log10(1250))
         gg <- gg + scale_x_continuous(
-            labels = function(x) format_format() (round(10^x - offset_x, digits = .digits_x)))
-    if (log10_y)
+            breaks = log10(custom_ticks_x + offset_x),
+            labels = function(x) format_format() 
+                (round(10^x - offset_x, digits = .digits_x)))
+    } else {
+        gg <- gg + scale_x_continuous(breaks = custom_ticks_x)
+    }
+        
+    if (log10_y) {
         gg <- gg + scale_y_continuous(
-            labels = function(x) format_format() (round(10^x - offset_y, digits = .digits_y)))
+            breaks = log10(custom_ticks_y + offset_y)
+            labels = function(x) format_format() 
+                (round(10^x - offset_y, digits = .digits_y)))
+    } else {
+        gg <- gg + scale_y_continuous(breaks = custom_ticks_y)
+    }
+        
 
     gg_scatter <- gg +
-        ggplot2::scale_x_continuous(breaks = c(100, 250, 500, 750, 1000, 1250)) +
         xlab("number of nodes per component") + ylab(plot) +
         ggtitle(plot) +
         labs(color = "gene family") +
@@ -802,8 +816,9 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
 
 ```{r average_local_efficiency, warning=FALSE, message=FALSE}
 ## average_local_efficiency
-tp <- plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = FALSE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+tp <- plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = TRUE,
+    offset_x = 0, offset_y = 0, .model = TRUE, 
+    custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
@@ -815,7 +830,8 @@ tp$scatter_plotly
 ```{r mean_distance, warning=FALSE, message=FALSE}
 ## mean_distance
 tp <- plot_topology_parameter(plot = "mean_distance", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+    offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(250, 500, 1500, 5000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -827,37 +843,43 @@ ttest_mean_distance <- tp$ttest
 ```{r betweenness_normalized, warning=FALSE, message=FALSE}
 ## betweenness_normalized
 tp <- plot_topology_parameter(plot = "betweenness_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+    offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+    offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+    offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0.4, 0.5, 0.7, 0.8))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+    offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 1, .model = FALSE)
+    offset_x = 0, offset_y = 1, .model = FALSE,
+    custom_ticks_y = c(0.0, 1, 5, 10))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE)
+    offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(2000, 10000, 30000, 100000, 400000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -869,37 +891,43 @@ ttest_betweenness_notnormalized_max <- tp$ttest
 ```{r closeness, warning=FALSE, message=FALSE}
 ## closeness
 tp <- plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4,
+    custom_ticks_y = c(0, 1e-04, 5e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_normalized_min <- tp$ttest
 tp <- plot_topology_parameter(plot = "closeness_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4)
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4,
+    custom_ticks_y = c(0.0001, 0.001, 0.01))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_normalized_median <- tp$ttest
 tp <- plot_topology_parameter(plot = "closeness_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 3)
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 3,
+    custom_ticks_y = c(0.0, 0.001, 0.0025, 0.005, 0.0075))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_normalized_max <- tp$ttest
 tp <- plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
+    custom_ticks_y = c(0.0, 1e-06, 1e-05))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_notnormalized_min <- tp$ttest
 tp <- plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
+    custom_ticks_y = c(0, 1e-06, 1e-05, 1e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_notnormalized_median <- tp$ttest
 tp <- plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6)
+    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
+    custom_ticks_y = c(0.0, 1e-06, 1e-05, 1e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -910,20 +938,23 @@ ttest_closeness_notnormalized_max <- tp$ttest
 
 ```{r constraint, warning=FALSE, message=FALSE}
 ## constraint
-tp <- plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(0.02, 0.03, 0.06, 0.1, 0.2))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_constraint_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(0.05, 0.1, 0.2, 0.4))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_constraint_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "constraint_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+tp <- plot_topology_parameter(plot = "constraint_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0.5, 0.75, 1, 1.25, 1.5))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
@@ -934,8 +965,9 @@ tp$scatter_plotly
 
 ```{r diameter, warning=FALSE, message=FALSE}
 ## diameter
-tp <- plot_topology_parameter(plot = "diameter", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "diameter", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(2000, 5000, 10000, 25000, 50000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -946,20 +978,23 @@ ttest_diameter <- tp$ttest
 
 ```{r degree, warning=FALSE, message=FALSE}
 ## degree
-tp <- plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(0.0, 0.001, 0.01, 0.03))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_degree_normalized_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(0.01, 0.1, 0.3, 0.5))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_degree_normalized_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    custom_ticks_y = c(0.1, 0.2, 0.3, 0.5, 0.8))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1424,7 +1459,7 @@ bin_mat_clique_og[bin_mat_clique_og >= .25] <- 1
 
 Apply now the function on the graph (for Orthofinder orthogroup input only).
 
-```{r clique_og}
+```{r clique_og, cache=TRUE}
 g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og, mode = "undirected", 
     weighted = NULL, diag = FALSE)
 cliques_greedy <- greedy_clique(g, n_rep = 100)
