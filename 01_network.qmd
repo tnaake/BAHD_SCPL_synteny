@@ -765,6 +765,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         
         ## bahd
         bahd_coefs <- lapply(seq_len(nrow(bahd_data)), function(i) {
+            set.seed(2024)
             new_rows <- sample(x = seq_len(nrow(bahd_data)), 
                 size = nrow(bahd_data), replace = TRUE)
             new_data <- bahd_data[new_rows, ]
@@ -781,6 +782,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         
         ## scpl
         scpl_coefs <- lapply(seq_len(nrow(scpl_data)), function(i) {
+            set.seed(2024)
             new_rows <- sample(x = seq_len(nrow(scpl_data)), 
                 size = nrow(scpl_data), replace = TRUE)
             new_data <- scpl_data[new_rows, ]
