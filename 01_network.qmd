@@ -256,7 +256,7 @@ membership_community <- data.frame(
 
 Add to the `membership_community` object information on the orthogroup and MCL membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
 
-```{r add_information_on_orthogroup_mcl}
+```{r add_information_on_orthogroup_mcl, cache = TRUE}
 ## add empty columns
 membership_community$og <- "unknown"
 membership_community$mcl <- "unknown"
@@ -758,14 +758,12 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     ## information on the model
     if (.model) {
         
-        n_rep <- min(nrow(scpl_data), nrow(bahd_data))
         print(paste("The function will perform", nrow(scpl_data), "and",
             nrow(bahd_data), "bootstrap repetitions for SCPL and BAHD.", 
             sep = " "))
         
         ## bahd
         bahd_coefs <- lapply(seq_len(nrow(bahd_data)), function(i) {
-            set.seed(2024)
             new_rows <- sample(x = seq_len(nrow(bahd_data)), 
                 size = nrow(bahd_data), replace = TRUE)
             new_data <- bahd_data[new_rows, ]
@@ -782,7 +780,6 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         
         ## scpl
         scpl_coefs <- lapply(seq_len(nrow(scpl_data)), function(i) {
-            set.seed(2024)
             new_rows <- sample(x = seq_len(nrow(scpl_data)), 
                 size = nrow(scpl_data), replace = TRUE)
             new_data <- scpl_data[new_rows, ]
@@ -898,7 +895,7 @@ tp$scatter_plotly
 # tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_normalized_median", 
     log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
-    custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
+    custom_ticks_y = c(1e-12, 1e-9, 1e-6, 1e-3, 1e-1), .digits_y = 12)
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
@@ -920,7 +917,7 @@ tp$scatter_plotly
 ##tp$ttest
 tp <- plot_topology_parameter(plot = "betweenness_notnormalized_median", 
     log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 1, .model = FALSE,
-    custom_ticks_y = c(0.0, 1, 5, 10))
+    custom_ticks_y = c(0.0, 1, 5, 10, 20))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
@@ -941,7 +938,7 @@ ttest_betweenness_notnormalized_max <- tp$ttest
 ## closeness
 tp <- plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
-    custom_ticks_y = c(2e-05, 3e-05, 4e-05, 5e-05, 7e-05, 1e-04, 2e-04, 4e-04, 3e-04, 5e-04))
+    custom_ticks_y = c(2e-05, 3e-05, 4e-05, 5e-05, 7e-05, 1e-04, 2e-04, 4e-04, 3e-04, 5e-04, 8e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -980,7 +977,7 @@ ttest_closeness_notnormalized_median <- tp$ttest
 tp <- plot_topology_parameter(plot = "closeness_notnormalized_max", 
     log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, 
     .digits_y = 10,
-    custom_ticks_y = c(1e-07, 1e-06, 1e-05, 1e-04))
+    custom_ticks_y = c(1e-07, 1e-06, 1e-05, 1e-04, 5e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -993,14 +990,14 @@ ttest_closeness_notnormalized_max <- tp$ttest
 ## constraint
 tp <- plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(0.02, 0.03, 0.06, 0.1, 0.2))
+    custom_ticks_y = c(0.01, 0.02, 0.03, 0.06, 0.1, 0.2))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_constraint_min <- tp$ttest
 tp <- plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(0.05, 0.1, 0.2, 0.4))
+    custom_ticks_y = c(0.04, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1020,7 +1017,7 @@ tp$scatter_plotly
 ## diameter
 tp <- plot_topology_parameter(plot = "diameter", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(2000, 5000, 10000, 25000, 50000, 100000))
+    custom_ticks_y = c(1000, 2000, 5000, 10000, 25000, 50000, 100000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1047,7 +1044,7 @@ tp$bootstrap
 ttest_degree_normalized_median <- tp$ttest
 tp <- plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
-    custom_ticks_y = c(0.01, 0.1, 0.2, 0.3, 0.5, 0.8))
+    custom_ticks_y = c(0.1, 0.2, 0.3, 0.5, 0.8, 1))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1061,7 +1058,7 @@ tp$scatter_plotly
 # tp$ttest
 tp <- plot_topology_parameter(plot = "degree_notnormalized_median", 
     log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(5, 10, 20, 30, 50, 80))
+    custom_ticks_y = c(3, 5, 10, 20, 30, 50, 70))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1134,8 +1131,8 @@ ttest_edge_betweenness_max <- tp$ttest
 ```{r eigen_centrality, warning=TRUE, message=FALSE}
 ## eigen_centrality
 tp <- plot_topology_parameter(plot = "eigen_centrality_min", log10_x = TRUE, 
-    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(1e-12, 1e-10, 1e-8, 1e-6, 1e-04), .digits_y = 12)
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 15,
+    custom_ticks_y = c(1e-14, 1e-12, 1e-10, 1e-8, 1e-6, 1e-04, 5e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1223,7 +1220,7 @@ tp$bootstrap
 ttest_neighborhood_size_median <- tp$ttest
 tp <- plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(10, 30, 50, 100, 150, 200), .digits_y = 10,) 
+    custom_ticks_y = c(20, 30, 50, 100, 150, 200, 250), .digits_y = 10) 
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1249,7 +1246,7 @@ ttest_radius <- tp$ttest
 ## strength
 tp <- plot_topology_parameter(plot = "strength_min", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000))
+    custom_ticks_y = c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 1200))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1282,7 +1279,7 @@ tp$scatter_plotly
 # tp$ttest
 tp <- plot_topology_parameter(plot = "distances_median", log10_x = TRUE, 
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
-    custom_ticks_y = c(100, 300, 1000, 3000, 10000), .digits_y = 10)
+    custom_ticks_y = c(80, 100, 300, 1000, 3000, 6000), .digits_y = 10)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
