@@ -45,7 +45,8 @@ net <- graph_from_adjacency_matrix(bin_mat_complete_cut, mode="undirected",
     diag = FALSE, weighted = TRUE)
 
 ## only continue with nodes from the big components 1 to 5
-names_net <- names(membership(components(net))[which(membership(components(net)) %in% 1:5)])
+names_net <- names(membership(components(net))[
+    which(membership(components(net)) %in% 1:5)])
 bin_mat_cut <- bin_mat_complete_cut[names_net, names_net]
 dim(bin_mat_cut)
 
@@ -199,7 +200,8 @@ net_cut <- graph_from_adjacency_matrix(bin_mat_cut, mode = "undirected",
     diag = FALSE, weighted = TRUE)
 ```
 
-How many network components do we have now after manual removal of the false edges?
+How many network components do we have now after manual removal of the false 
+edges?
 
 ```{r}
 length(decompose(net_cut))
@@ -242,9 +244,14 @@ if (!all(names(membership(fc)) == names(membership(ml))))
     stop()
 if (!all(names(membership(fc)) == names(membership(im))))
     stop()
-membership_community <- data.frame(X = names(membership(fc)), fc = membership(fc), 
-    wc = membership(wc), le = membership(le), 
-    lp = membership(lp), ml = membership(ml), im = membership(im))
+membership_community <- data.frame(
+    X = names(membership(fc)), 
+    fc = membership(fc), 
+    wc = membership(wc), 
+    le = membership(le), 
+    lp = membership(lp), 
+    ml = membership(ml), 
+    im = membership(im))
 ```
 
 Add to the `membership_community` object information on the orthogroup and MCL membership and if the genomic region contains BAHD(s) or SCP/SCPL(s).
@@ -274,8 +281,8 @@ og_scpl <- c("OG0000185", "OG0000121", "OG0001568", "OG0001444", "OG0003193",
       "OG0003286", "OG0000663", "OG0007821")
 mcl_scpl <- c("group_50")
 
-## iterate through the orthogroups and add the information to membership community
-## for BAHDs
+## iterate through the orthogroups and add the information to membership 
+## community for BAHDs
 for (row_i in seq_len(nrow(membership_community))) {
     
     genes_i <- membership_community[row_i, "X"] |>
@@ -325,11 +332,13 @@ membership_community$family <- stringr::str_remove(
     membership_community$family, pattern = "^unknown/")
 
 ## simplify the family column
-membership_community$family <- strsplit(membership_community$family, split = "/") |> 
+membership_community$family <- strsplit(membership_community$family, 
+        split = "/") |> 
     lapply(function(entry_i) unique(entry_i)) |>
     lapply(function(entry_i) paste(entry_i, collapse = "/")) |>
     unlist()
-write.table(membership_community, file = "membership_community_gene_cluster_added.txt", 
+write.table(membership_community, 
+    file = "membership_community_gene_cluster_added.txt", 
     quote = FALSE, row.names = FALSE, sep = "\t")
 ```
 
@@ -598,7 +607,8 @@ get_topology_for_components <- function(og = og_bahd) {
         ## calculate topological parameters, add information on the component, and
         ## combine into one data.frame
         topological_parameters_i <- lapply(seq_along(.components), function(j) {
-            df <- calculate_topological_parameters(.component = .components[[j]])
+            df <- calculate_topological_parameters(
+                .component = .components[[j]])
             cbind(df, component = paste(og[i], j, sep = "_"))
         })
         topological_parameters_i <- do.call("rbind", topological_parameters_i) 
@@ -607,11 +617,14 @@ get_topology_for_components <- function(og = og_bahd) {
         if (i == 1) {
             topological_parameters <- topological_parameters_i
         } else {
-            topological_parameters <- rbind(topological_parameters, topological_parameters_i)    
+            topological_parameters <- rbind(topological_parameters, 
+                topological_parameters_i)    
         }
     }
     
-    list(topological_parameters = topological_parameters, component_size = component_size)
+    list(
+        topological_parameters = topological_parameters, 
+        component_size = component_size)
 }
 ```
 
@@ -673,7 +686,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     .topology_scpl = topology_scpl, plot = "degree", log10_x = FALSE, 
     log10_y = FALSE, offset_x = 0, offset_y = 0, .model = TRUE, method = "lm",
     .digits_x = 0, .digits_y = 2, 
-    custom_ticks_x = c(50, 100, 250, 500, 750, 1250), custom_ticks_y = c(0, 1)) {
+    custom_ticks_x = c(50, 100, 250, 500, 750, 1250), custom_ticks_y = c(0.1, 1)) {
     
     ## row bind topology_bahd and topology_scpl
     bahd_data <- .topology_bahd[[1]]
@@ -694,29 +707,43 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     gg <- topology_l |>
         ggplot(aes(x = number_nodes, y = .data[[plot]], color = family)) +
             geom_point() +
-            suppressWarnings(ggplot2::geom_point(ggplot2::aes(text = component)))
+            suppressWarnings(
+                ggplot2::geom_point(ggplot2::aes(text = component)))
     if (.model)
         gg <- gg +
             geom_smooth(method = method, se = FALSE, alpha = 0.02)
     
     if (log10_x) {
-        gg <- gg + xlim(log10(49), log10(1250))
-        gg <- gg + scale_x_continuous(
+        gg <- gg +
+            scale_x_continuous(
             breaks = log10(custom_ticks_x + offset_x),
             labels = function(x) format_format() 
-                (round(10^x - offset_x, digits = .digits_x)))
+                (round(10^x - offset_x, digits = .digits_x)),
+            limits = c(log10(min(custom_ticks_x + offset_x)),
+                log10(max(custom_ticks_x + offset_x))))
     } else {
-        gg <- gg + scale_x_continuous(breaks = custom_ticks_x)
+        gg <- gg +
+            scale_x_continuous(breaks = custom_ticks_x,
+                limits = c(min(custom_ticks_x), max(custom_ticks_x)))
     }
         
     if (log10_y) {
-        gg <- gg + scale_y_continuous(
-            breaks = log10(custom_ticks_y + offset_y)
-            labels = function(x) format_format() 
-                (round(10^x - offset_y, digits = .digits_y)))
+        gg <- gg + 
+            scale_y_continuous(
+                breaks = log10(custom_ticks_y + offset_y),
+                labels = function(x) format_format() 
+                    (round(10^x - offset_y, digits = .digits_y)),
+                limits = c(log10(min(custom_ticks_y + offset_y)), 
+                   log10(max(custom_ticks_y))))
     } else {
-        gg <- gg + scale_y_continuous(breaks = custom_ticks_y)
+        gg <- gg + 
+            scale_y_continuous(breaks = custom_ticks_y,
+                limits = c(min(custom_ticks_y), max(custom_ticks_y)))
     }
+    
+    #gg <- gg + 
+     #   xlim(min(custom_ticks_x), max(custom_ticks_x)) +
+     #   ylim(min(custom_ticks_y), max(custom_ticks_y))
         
 
     gg_scatter <- gg +
@@ -732,14 +759,19 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     if (.model) {
         
         n_rep <- min(nrow(scpl_data), nrow(bahd_data))
-        print(paste("The function will perform", n_rep, "bootstrap repetitions.", sep = " "))
+        print(paste("The function will perform", n_rep, 
+            "bootstrap repetitions.", sep = " "))
         
         ## bahd
         bahd_coefs <- lapply(seq_len(n_rep), function(i) {
-            new_rows <- sample(x = seq_len(nrow(bahd_data)), size = nrow(bahd_data), replace = TRUE)
+            new_rows <- sample(x = seq_len(nrow(bahd_data)), 
+                size = nrow(bahd_data), replace = TRUE)
             new_data <- bahd_data[new_rows, ]
             .model <- lm(new_data[[plot]] ~ number_nodes, data = new_data)
-            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+            
+            list(
+                .model$coefficients[["(Intercept)"]], 
+                .model$coefficients[["number_nodes"]]) 
         })
         bahd_coefs_intercept <- lapply(bahd_coefs, "[", 1) |>
             unlist()
@@ -748,25 +780,33 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         
         ## scpl
         scpl_coefs <- lapply(seq_len(n_rep), function(i) {
-            new_rows <- sample(x = seq_len(nrow(scpl_data)), size = nrow(scpl_data), replace = TRUE)
+            new_rows <- sample(x = seq_len(nrow(scpl_data)), 
+                size = nrow(scpl_data), replace = TRUE)
             new_data <- scpl_data[new_rows, ]
             .model <- lm(new_data[[plot]] ~ number_nodes, data = new_data)
-            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+            list(
+                .model$coefficients[["(Intercept)"]], 
+                .model$coefficients[["number_nodes"]]) 
         })
         scpl_coefs_intercept <- lapply(scpl_coefs, "[", 1) |>
             unlist()
         scpl_coefs_nn <- lapply(scpl_coefs, "[", 2) |> 
             unlist()
         df <- rbind(
-            data.frame(value = bahd_coefs_intercept, family = "BAHD", coefficient = "intercept"),
-            data.frame(value = bahd_coefs_nn, family = "BAHD", coefficient = "number_nodes"),
-            data.frame(value = scpl_coefs_intercept, family = "SCPL", coefficient = "intercept"),
-            data.frame(value = scpl_coefs_nn, family = "SCPL", coefficient = "number_nodes"))
+            data.frame(value = bahd_coefs_intercept, family = "BAHD", 
+                coefficient = "intercept"),
+            data.frame(value = bahd_coefs_nn, family = "BAHD", 
+                coefficient = "number_nodes"),
+            data.frame(value = scpl_coefs_intercept, family = "SCPL", 
+                coefficient = "intercept"),
+            data.frame(value = scpl_coefs_nn, family = "SCPL", 
+                coefficient = "number_nodes"))
        
         
         gg_boxplot <- ggboxplot(df, x = "family", y = "value", title = plot, 
                 facet.by = "coefficient", scales = "free_y") +
-            stat_compare_means(comparisons = list(c("BAHD", "SCPL")), method = "t.test")
+            stat_compare_means(comparisons = list(c("BAHD", "SCPL")), 
+                method = "t.test")
         
         ttest_intercept <- t.test(bahd_coefs_intercept, scpl_coefs_intercept)
         ttest_nn <- t.test(bahd_coefs_nn, scpl_coefs_nn)
@@ -775,7 +815,9 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         ## bahd
         bahd_coef_empirical <- lapply(1, function(i) {
             .model <- lm(bahd_data[[plot]] ~ number_nodes, data = bahd_data)
-            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+            list(
+                .model$coefficients[["(Intercept)"]], 
+                .model$coefficients[["number_nodes"]]) 
         })
         bahd_coef_intercept <- lapply(bahd_coef_empirical, "[", 1) |>
             unlist()
@@ -785,7 +827,9 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
         ## scpl
         scpl_coefs_empirical <- lapply(1, function(i) {
             .model <- lm(scpl_data[[plot]] ~ number_nodes, data = scpl_data)
-            list(.model$coefficients[["(Intercept)"]], .model$coefficients[["number_nodes"]]) 
+            list(
+                .model$coefficients[["(Intercept)"]], 
+                .model$coefficients[["number_nodes"]]) 
         })
         scpl_coef_intercept <- lapply(scpl_coefs_empirical, "[", 1) |>
             unlist()
@@ -814,24 +858,24 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
 
 ### average_local_efficiency
 
-```{r average_local_efficiency, warning=FALSE, message=FALSE}
+```{r average_local_efficiency, warning=TRUE, message=FALSE}
 ## average_local_efficiency
-tp <- plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, 
-    custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
+tp <- plot_topology_parameter(plot = "average_local_efficiency", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
+    custom_ticks_y = c(0.001, 0.005, 0.01, 0.015, 0.05))
 tp$scatter
 tp$scatter_plotly
-# tp$bootstrap
-# tp$ttest
+ tp$bootstrap
+ttest_average_local_efficiency <- tp$ttest
 ```
 
 ### mean_distance
 
-```{r mean_distance, warning=FALSE, message=FALSE}
+```{r mean_distance, warning=TRUE, message=FALSE}
 ## mean_distance
-tp <- plot_topology_parameter(plot = "mean_distance", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0,
-    custom_ticks_y = c(250, 500, 1500, 5000))
+tp <- plot_topology_parameter(plot = "mean_distance", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(250, 500, 1500, 5000, 10000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -840,44 +884,46 @@ ttest_mean_distance <- tp$ttest
 
 ### betweenness_normalized
 
-```{r betweenness_normalized, warning=FALSE, message=FALSE}
+```{r betweenness_normalized, warning=TRUE, message=FALSE}
 ## betweenness_normalized
-tp <- plot_topology_parameter(plot = "betweenness_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE,
+tp <- plot_topology_parameter(plot = "betweenness_normalized_min", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
     custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
-tp <- plot_topology_parameter(plot = "betweenness_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE,
+tp <- plot_topology_parameter(plot = "betweenness_normalized_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
     custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
-tp <- plot_topology_parameter(plot = "betweenness_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE,
-    custom_ticks_y = c(0.4, 0.5, 0.7, 0.8))
+tp <- plot_topology_parameter(plot = "betweenness_normalized_max", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0))
 tp$scatter
 tp$scatter_plotly
-# tp$bootstrap
-# tp$ttest
-tp <- plot_topology_parameter(plot = "betweenness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
+tp$bootstrap
+ttest_betweenness_normalized_max <- tp$ttest
+tp <- plot_topology_parameter(
+    plot = "betweenness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0, .model = FALSE,
     custom_ticks_y = c(0.005, 0.01, 0.015, 0.02))
 tp$scatter
 tp$scatter_plotly
-# tp$bootstrap
-# tp$ttest
-tp <- plot_topology_parameter(plot = "betweenness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 1, .model = FALSE,
+##tp$bootstrap
+##tp$ttest
+tp <- plot_topology_parameter(plot = "betweenness_notnormalized_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 1, .model = FALSE,
     custom_ticks_y = c(0.0, 1, 5, 10))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
-tp <- plot_topology_parameter(plot = "betweenness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
+tp <- plot_topology_parameter(
+    plot = "betweenness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
     offset_x = 0, offset_y = 0, .model = TRUE,
     custom_ticks_y = c(2000, 10000, 30000, 100000, 400000))
 tp$scatter
@@ -888,46 +934,50 @@ ttest_betweenness_notnormalized_max <- tp$ttest
 
 ### closeness
 
-```{r closeness, warning=FALSE, message=FALSE}
+```{r closeness, warning=TRUE, message=FALSE}
 ## closeness
-tp <- plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4,
-    custom_ticks_y = c(0, 1e-04, 5e-04))
+tp <- plot_topology_parameter(plot = "closeness_normalized_min", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
+    custom_ticks_y = c(2e-05, 3e-05, 4e-05, 5e-05, 7e-05, 1e-04, 2e-04, 4e-04, 3e-04, 5e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_normalized_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "closeness_normalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 4,
+tp <- plot_topology_parameter(plot = "closeness_normalized_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, 
+    .digits_y = 6,
     custom_ticks_y = c(0.0001, 0.001, 0.01))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_normalized_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "closeness_normalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 3,
-    custom_ticks_y = c(0.0, 0.001, 0.0025, 0.005, 0.0075))
+tp <- plot_topology_parameter(plot = "closeness_normalized_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 5,
+    custom_ticks_y = c(0.0001, 0.00025, 0.001, 0.0025, 0.005, 0.0075))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_normalized_max <- tp$ttest
-tp <- plot_topology_parameter(plot = "closeness_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
-    custom_ticks_y = c(0.0, 1e-06, 1e-05))
+tp <- plot_topology_parameter(plot = "closeness_notnormalized_min", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, 
+    .digits_y = 10,
+    custom_ticks_y = c(1e-08, 1e-07, 1e-06, 1e-05))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_notnormalized_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "closeness_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
-    custom_ticks_y = c(0, 1e-06, 1e-05, 1e-04))
+tp <- plot_topology_parameter(plot = "closeness_notnormalized_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, 
+    .model = TRUE, .digits_y = 10,
+    custom_ticks_y = c(1e-07, 1e-06, 1e-05, 1e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_closeness_notnormalized_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "closeness_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 6,
-    custom_ticks_y = c(0.0, 1e-06, 1e-05, 1e-04))
+tp <- plot_topology_parameter(plot = "closeness_notnormalized_max", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, 
+    .digits_y = 10,
+    custom_ticks_y = c(1e-07, 1e-06, 1e-05, 1e-04))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -936,17 +986,17 @@ ttest_closeness_notnormalized_max <- tp$ttest
 
 ### constraint
 
-```{r constraint, warning=FALSE, message=FALSE}
+```{r constraint, warning=TRUE, message=FALSE}
 ## constraint
 tp <- plot_topology_parameter(plot = "constraint_min", log10_x = TRUE, 
-    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
     custom_ticks_y = c(0.02, 0.03, 0.06, 0.1, 0.2))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_constraint_min <- tp$ttest
 tp <- plot_topology_parameter(plot = "constraint_median", log10_x = TRUE, 
-    log10_y = TRUE, offset_x = 0, offset_y = 0,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
     custom_ticks_y = c(0.05, 0.1, 0.2, 0.4))
 tp$scatter
 tp$scatter_plotly
@@ -963,11 +1013,11 @@ tp$scatter_plotly
 
 ### diameter
 
-```{r diameter, warning=FALSE, message=FALSE}
+```{r diameter, warning=TRUE, message=FALSE}
 ## diameter
 tp <- plot_topology_parameter(plot = "diameter", log10_x = TRUE, 
-    log10_y = TRUE, offset_x = 0, offset_y = 0,
-    custom_ticks_y = c(2000, 5000, 10000, 25000, 50000))
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(2000, 5000, 10000, 25000, 50000, 100000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -976,43 +1026,46 @@ ttest_diameter <- tp$ttest
 
 ### degree
 
-```{r degree, warning=FALSE, message=FALSE}
+```{r degree, warning=TRUE, message=FALSE}
 ## degree
 tp <- plot_topology_parameter(plot = "degree_normalized_min", log10_x = TRUE, 
-    log10_y = TRUE, offset_x = 0, offset_y = 0,
-    custom_ticks_y = c(0.0, 0.001, 0.01, 0.03))
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
+    custom_ticks_y = c(0.0003, 0.001, 0.003, 0.01, 0.03))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_degree_normalized_min <- tp$ttest
 tp <- plot_topology_parameter(plot = "degree_normalized_median", log10_x = TRUE,
-    log10_y = TRUE, offset_x = 0, offset_y = 0,
-    custom_ticks_y = c(0.01, 0.1, 0.3, 0.5))
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
+    custom_ticks_y = c(0.01, 0.1, 0.3, 0.5, 0.8))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_degree_normalized_median <- tp$ttest
 tp <- plot_topology_parameter(plot = "degree_normalized_max", log10_x = TRUE, 
-    log10_y = TRUE, offset_x = 0, offset_y = 0,
-    custom_ticks_y = c(0.1, 0.2, 0.3, 0.5, 0.8))
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
+    custom_ticks_y = c(0.01, 0.1, 0.2, 0.3, 0.5, 0.8))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_degree_normalized_max <- tp$ttest
-tp <- plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+tp <- plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(1, 1.5, 2))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
-tp <- plot_topology_parameter(plot = "degree_notnormalized_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "degree_notnormalized_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(5, 10, 20, 30, 50, 80))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_degree_notnormalized_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "degree_notnormalized_max", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(10, 30, 50, 100, 200))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1021,22 +1074,25 @@ ttest_degree_notnormalized_max <- tp$ttest
 
 ### eccentricity
 
-```{r eccentricity, warning=FALSE, message=FALSE}
+```{r eccentricity, warning=TRUE, message=FALSE}
 ## eccentricity
-tp <- plot_topology_parameter(plot = "eccentricity_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "eccentricity_min", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(2, 2.5, 3, 4, 5, 7.5))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_eccentricity_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "eccentricity_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "eccentricity_median", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(2, 4, 6, 8, 10, 12))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_eccentricity_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "eccentricity_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "eccentricity_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(4, 5, 6, 8, 10, 12.5, 15))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1045,22 +1101,25 @@ ttest_eccentricity_max <- tp$ttest
 
 ### edge_betweenness
 
-```{r edge_betweenness, warning=FALSE, message=FALSE}
+```{r edge_betweenness, warning=TRUE, message=FALSE}
 ## edge_betweenness
-tp <- plot_topology_parameter(plot = "edge_betweenness_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+tp <- plot_topology_parameter(plot = "edge_betweenness_min", log10_x = FALSE, 
+    log10_y = FALSE, offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0.0, 0.05, 0.1))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # ttest_edge_betweenness_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "edge_betweenness_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+tp <- plot_topology_parameter(plot = "edge_betweenness_median", log10_x = FALSE,
+    log10_y = FALSE, offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(0, 1, 2))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # ttest_edge_betweenness_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "edge_betweenness_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "edge_betweenness_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1069,28 +1128,32 @@ ttest_edge_betweenness_max <- tp$ttest
 
 ### eigen_centrality
 
-```{r eigen_centrality, warning=FALSE, message=FALSE}
+```{r eigen_centrality, warning=TRUE, message=FALSE}
 ## eigen_centrality
-tp <- plot_topology_parameter(plot = "eigen_centrality_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE)
+tp <- plot_topology_parameter(plot = "eigen_centrality_min", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1e-12, 1e-10, 1e-8, 1e-6, 1e-04), .digits_y = 12)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_eigen_centrality_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "eigen_centrality_median", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1e-04, 3e-04, 1e-03, 3e-03, 0.01, 0.03, 0.1, 0.3), .digits_y = 10)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_eigen_centrality_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "eigen_centrality_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "eigen_centrality_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(0.1, 0.15, 0.2, 0.25, 0.35), .digits_y = 10)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_eigen_centrality_max <- tp$ttest
-tp <- plot_topology_parameter(plot = "eigen_centrality_value", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "eigen_centrality_value", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1e3, 1e4, 1e5, 1e6, 1e7))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1099,10 +1162,11 @@ ttest_eigen_centrality_value <- tp$ttest
 
 ### global_efficiency
 
-```{r global_efficiency, warning=FALSE, message=FALSE}
+```{r global_efficiency, warning=TRUE, message=FALSE}
 ## global_efficiency
-tp <- plot_topology_parameter(plot = "global_efficiency", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "global_efficiency", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(0.0001, 0.001, 0.004, 0.01, 0.04), .digits_y = 3)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1111,22 +1175,25 @@ ttest_global_efficiency <- tp$ttest
 
 ### harmonic_centrality
 
-```{r harmonic_centrality, warning=FALSE, message=FALSE}
+```{r harmonic_centrality, warning=TRUE, message=FALSE}
 ## harmonic_centrality
-tp <- plot_topology_parameter(plot = "harmonic_centrality_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "harmonic_centrality_min", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE, .digits_y = 10,
+    custom_ticks_y = c(0.01, 0.02, 0.03, 0.04, 0.06, 0.08))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_harmonic_centrality_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "harmonic_centrality_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "harmonic_centrality_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(0.2, 0.4, 0.6, 1), .digits_y = 10,)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_harmonic_centrality_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "harmonic_centrality_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "harmonic_centrality_max", log10_x = TRUE,
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(2, 3, 4, 5, 7), .digits_y = 10,)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1135,22 +1202,25 @@ ttest_harmonic_centrality_max <- tp$ttest
 
 ### neighborhood_size
 
-```{r neighborhood_size, warning=FALSE, message=FALSE}
+```{r neighborhood_size, warning=TRUE, message=FALSE}
 ## neighborhood_size
-tp <- plot_topology_parameter(plot = "neighborhood_size_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+tp <- plot_topology_parameter(plot = "neighborhood_size_min", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(2, 2.5, 3))
 tp$scatter
 tp$scatter_plotly
-# tp$bootstrap
-# tp$ttest
-tp <- plot_topology_parameter(plot = "neighborhood_size_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+##tp$bootstrap
+##ttest_neighborhood_size_min <- tp$ttest
+tp <- plot_topology_parameter(plot = "neighborhood_size_median", 
+    log10_x = TRUE, log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(5, 7, 10, 15, 30, 50, 70))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_neighborhood_size_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0) 
+tp <- plot_topology_parameter(plot = "neighborhood_size_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(10, 30, 50, 100, 150, 200), .digits_y = 10,) 
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1159,10 +1229,11 @@ ttest_neighborhood_size_max <- tp$ttest
 
 ### radius
 
-```{r radius, warning=FALSE, message=FALSE}
+```{r radius, warning=TRUE, message=FALSE}
 ## radius
 tp <- plot_topology_parameter(plot = "radius", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE)
+    offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(2, 2.5, 3, 4, 5, 6, 7))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1171,22 +1242,25 @@ ttest_radius <- tp$ttest
 
 ### strength
 
-```{r strength, warning=FALSE, message=FALSE}
+```{r strength, warning=TRUE, message=FALSE}
 ## strength
-tp <- plot_topology_parameter(plot = "strength_min", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0, .model = TRUE)
+tp <- plot_topology_parameter(plot = "strength_min", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_strength_min <- tp$ttest
-tp <- plot_topology_parameter(plot = "strength_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "strength_median", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1e02, 1e03, 1e04, 1e05, 1e06), .digits_y = 10)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_strength_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "strength_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "strength_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(3000, 10000, 30000, 100000, 300000, 1000000, 3000000))
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1195,21 +1269,24 @@ ttest_strength_max <- tp$ttest
 
 ### distances
 
-```{r distances, warning=FALSE, message=FALSE}
+```{r distances, warning=TRUE, message=FALSE}
 tp <- plot_topology_parameter(plot = "distances_min", log10_x = FALSE, log10_y = F,
-    offset_x = 0, offset_y = 0, .model = FALSE)
+    offset_x = 0, offset_y = 0, .model = FALSE,
+    custom_ticks_y = c(-0.05, -0.025, 0, 0.025, 0.05))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
 # tp$ttest
-tp <- plot_topology_parameter(plot = "distances_median", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "distances_median", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(100, 300, 1000, 3000, 10000), .digits_y = 10)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
 ttest_distances_median <- tp$ttest
-tp <- plot_topology_parameter(plot = "distances_max", log10_x = TRUE, log10_y = TRUE,
-    offset_x = 0, offset_y = 0)
+tp <- plot_topology_parameter(plot = "distances_max", log10_x = TRUE, 
+    log10_y = TRUE, offset_x = 0, offset_y = 0, .model = TRUE,
+    custom_ticks_y = c(1000, 3000, 10000, 30000, 100000), .digits_y = 10)
 tp$scatter
 tp$scatter_plotly
 tp$bootstrap
@@ -1222,7 +1299,9 @@ Combine first the test results. Then adjust via FDR using the Benjamini-Hochberg
 
 ```{r multiple_testing_correction}
 ttest_df <- rbind(
+    ttest_average_local_efficiency,
     ttest_mean_distance,
+    ttest_betweenness_normalized_max,
     ttest_betweenness_notnormalized_max,
     ttest_closeness_normalized_min,
     ttest_closeness_normalized_median,
@@ -1254,6 +1333,8 @@ ttest_df <- rbind(
     ttest_harmonic_centrality_max,
     ttest_neighborhood_size_median,
     ttest_neighborhood_size_max,
+    ttest_neighborhood_size_median,
+    ttest_neighborhood_size_max,
     ttest_radius,
     ttest_strength_min,
     ttest_strength_median,
@@ -1264,7 +1345,9 @@ ttest_df$intercept_p_adj <- p.adjust(ttest_df$intercept_p, method = "BH")
 ttest_df$nn_p_adj <- p.adjust(ttest_df$nn_p, method = "BH")
 ```
 
-Return the table with all the information (t-values, df, raw p-values, adjusted p-values) for the intercept and the `number_nodes` parameter (gradient).
+Return the table with all the information (t-values, df, raw p-values, 
+adjusted p-values) for the intercept and the `number_nodes` parameter 
+(gradient).
 
 ```{r}
 ## return the final table
@@ -1285,10 +1368,12 @@ What are the parameters that show differences in the `number_nodes` parameter?
 rmarkdown::paged_table(ttest_df[ttest_df$nn_p_adj <= 0.05, ])
 ```
 
-What are the parameters that both show differences in the intercept and `number_nodes` parameter?
+What are the parameters that both show differences in the intercept and 
+`number_nodes` parameter?
 
 ```{r}
-rmarkdown::paged_table(ttest_df[ttest_df$intercept_p_adj <= 0.05 & ttest_df$nn_p_adj <= 0.05, ])
+rmarkdown::paged_table(
+    ttest_df[ttest_df$intercept_p_adj <= 0.05 & ttest_df$nn_p_adj <= 0.05, ])
 ```
 
 # Cliques
@@ -1360,10 +1445,12 @@ greedy_clique <- function(g, n_rep = 100) {
     
     cliques_l <- list()
     ## create a nested list, the outer list for the components, the middle 
-    ## list contains the repetitions, the inner list contains the clique information
+    ## list contains the repetitions, the inner list contains the clique 
+    ## information
     for (i in seq_along(.components)) {
         cliques_l[[i]] <- lapply(seq_len(n_rep), 
-            function(j) find_largest_non_overlapping_cliques(g = .components[[i]]))
+            function(j) find_largest_non_overlapping_cliques(
+                g = .components[[i]]))
     }
     
     ## obtain the number of items in each clique clique_i
@@ -1419,8 +1506,8 @@ bin_mat_clique_og_mcl[bin_mat_clique_og_mcl >= .25] <- 1
 Apply now the function on the graph (for MCL group and Orthofinder orthogroup input).
 
 ```{r clique_og_mcl, cache = TRUE}
-g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og_mcl, mode = "undirected", 
-    weighted = NULL, diag = FALSE)
+g <- igraph::graph_from_adjacency_matrix(bin_mat_clique_og_mcl, 
+    mode = "undirected", weighted = NULL, diag = FALSE)
 cliques_greedy <- greedy_clique(g, n_rep = 100)
 
 ## write the result to membership_community
@@ -1433,8 +1520,11 @@ for (component_i in seq_along(cliques_greedy)) {
     for (clique_i in seq_along(cliques_greedy[[component_i]])) {
         clique_name <- paste(component_name, "clique", clique_i, sep = "_")
         
-        ## find the rows of the members of the clique and write to membership_community
-        ind_rows <- which(membership_community$X %in% cliques_greedy[[component_i]][[clique_i]])
+        ## find the rows of the members of the clique and write to
+        ## membership_community
+        ind_rows <- which(
+            membership_community$X %in% 
+                cliques_greedy[[component_i]][[clique_i]])
         membership_community[ind_rows, "component_og_mcl"] <- component_name
         membership_community[ind_rows, "clique_og_mcl"] <- clique_name
     }
@@ -1453,7 +1543,8 @@ bin_mat_clique_og <- bin_mat_cut
 ## tmp <- names(table(bin_mat_type))
 ## tmp[!grepl(tmp, pattern = "iadhore$|iadhore/|mcscanx$|mcscanx/")]
 bin_mat_clique_og[
-    mat_type_cut %in% c("iadhore_mcl", "iadhore_mcl/mcscanx_mcl", "mcscanx_mcl")] <- 0
+    mat_type_cut %in% 
+        c("iadhore_mcl", "iadhore_mcl/mcscanx_mcl", "mcscanx_mcl")] <- 0
 bin_mat_clique_og[bin_mat_clique_og >= .25] <- 1
 ```
 
@@ -1474,8 +1565,11 @@ for (component_i in seq_along(cliques_greedy)) {
     for (clique_i in seq_along(cliques_greedy[[component_i]])) {
         clique_name <- paste(component_name, "clique", clique_i, sep = "_")
         
-        ## find the rows of the members of the clique and write to membership_community
-        ind_rows <- which(membership_community$X %in% cliques_greedy[[component_i]][[clique_i]])
+        ## find the rows of the members of the clique and write to 
+        ## membership_community
+        ind_rows <- which(
+            membership_community$X %in% 
+                cliques_greedy[[component_i]][[clique_i]])
         membership_community[ind_rows, "component_og"] <- component_name
         membership_community[ind_rows, "clique_og"] <- clique_name
     }
@@ -1494,7 +1588,8 @@ write.table(membership_community, file = "membership_community.csv",
 Export also the network file derived from the adjacency matrix `bin_mat_cut`.
 
 ```{r export_net_cut}
-write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", format = "graphml")
+write_graph(net_cut, file = "bin_mat_cut_graphml_manually_removed_edges.xml", 
+    format = "graphml")
 ```
 
 # Plot the network
@@ -1639,7 +1734,7 @@ if (all(names(V(net_cut)) == membership_community$X)) {
         .color <- as.factor(membership_community[
             match(names(V(.components[[i]])), membership_community$X), "mcl"])
         .color <- lapply(strsplit(as.character(.color), split = "/"),
-            function(.color_i) paste(unique(.color_i), collapse = "/")) |>
+            function (.color_i) paste(unique(.color_i), collapse = "/")) |>
             unlist() |>
             as.factor()
         ## do the actual plotting
@@ -1658,7 +1753,8 @@ if (all(names(V(net_cut)) == membership_community$X)) {
     for (i in seq_along(.components)) {
         ## define the color
         .color <- as.factor(membership_community[
-            match(names(V(.components[[i]])), membership_community$X), "component_og_mcl"])
+            match(names(V(.components[[i]])), membership_community$X), 
+                "component_og_mcl"])
         
         ## do the actual plotting
         plot(.components[[i]], vertex.label = NA, vertex.size = 3,
