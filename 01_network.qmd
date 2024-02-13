@@ -759,11 +759,12 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
     if (.model) {
         
         n_rep <- min(nrow(scpl_data), nrow(bahd_data))
-        print(paste("The function will perform", n_rep, 
-            "bootstrap repetitions.", sep = " "))
+        print(paste("The function will perform", nrow(scpl_data), "and",
+            nrow(bahd_data), "bootstrap repetitions for SCPL and BAHD.", 
+            sep = " "))
         
         ## bahd
-        bahd_coefs <- lapply(seq_len(n_rep), function(i) {
+        bahd_coefs <- lapply(seq_len(nrow(bahd_data)), function(i) {
             new_rows <- sample(x = seq_len(nrow(bahd_data)), 
                 size = nrow(bahd_data), replace = TRUE)
             new_data <- bahd_data[new_rows, ]
@@ -779,7 +780,7 @@ plot_topology_parameter <- function(.topology_bahd = topology_bahd,
             unlist()
         
         ## scpl
-        scpl_coefs <- lapply(seq_len(n_rep), function(i) {
+        scpl_coefs <- lapply(seq_len(nrow(scpl_data)), function(i) {
             new_rows <- sample(x = seq_len(nrow(scpl_data)), 
                 size = nrow(scpl_data), replace = TRUE)
             new_data <- scpl_data[new_rows, ]
