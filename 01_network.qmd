@@ -675,6 +675,12 @@ membership_community$topology_component <- stringr::str_remove(
 ## add information on BAHD and SCPL genes
 topology_bahd[[1]]$family <- "BAHD"
 topology_scpl[[1]]$family <- "SCPL"
+
+## write the topology parameters to a file
+write.table(topology_bahd[[1]], file = "topology_values_component_BAHD.txt", 
+    quote = FALSE, sep = "\t", dec = ".", row.names = FALSE)
+write.table(topology_scpl[[1]], file = "topology_values_component_SCPL.txt", 
+    quote = FALSE, sep = "\t", dec = ".", row.names = FALSE)
 ```
 
 ## Plotting
