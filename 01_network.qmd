@@ -1052,7 +1052,7 @@ tp$bootstrap
 ttest_degree_normalized_max <- tp$ttest
 tp <- plot_topology_parameter(plot = "degree_notnormalized_min", log10_x = TRUE,
     log10_y = TRUE, offset_x = 0, offset_y = 0, .model = FALSE,
-    custom_ticks_y = c(1, 1.5, 2))
+    custom_ticks_y = c(0.5, 1, 1.5, 2, 3))
 tp$scatter
 tp$scatter_plotly
 # tp$bootstrap
