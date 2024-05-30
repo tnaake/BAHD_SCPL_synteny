@@ -1,2 +1,13 @@
 
 *.fasta
+*.html
+*.RData
+*.rdb
+*.rdx
+*.png
+*.xml
+*.zip
+*.xlsx
+*.csv
+*.txt
+*.pdf
